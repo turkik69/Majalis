@@ -1,0 +1,1068 @@
+import React, { useState, useEffect, useMemo } from "react";
+import {
+  LayoutDashboard, FileText, Building2, Users, Plus, X, Search,
+  Clock, CheckCircle2, RotateCcw, Filter, Landmark, Trash2,
+  Inbox, Send, ClipboardList, Pencil, Menu
+} from "lucide-react";
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, Cell
+} from "recharts";
+
+/* ============================================================
+   الهوية البصرية — Design tokens
+   ============================================================ */
+const C = {
+  navy950: "#380A0B",   // أعمق درجة (كحلي سابقًا) — خلفية الشريط الجانبي والعناوين
+  navy800: "#591214",   // درجة غامقة — أسطح ثانوية وتسميات الحقول
+  navy700: "#7A1620",   // درجة متوسطة — أيقونات على خلفيات فاتحة
+  gold500: "#A12024",   // اللون الأحمر الأساسي المستخرج من الشعار الرسمي
+  gold600: "#7A1620",
+  gold100: "#F5E1E1",   // درجة وردية فاتحة لخلفيات الشارات
+  paper: "#FAF7F2",
+  paperDark: "#EFE7DD",
+  ink: "#241A1A",
+  slate: "#6B5A58",
+};
+
+const CHART_COLORS = ["#380A0B", "#591214", "#A12024", "#C22227", "#6B5A58"];
+
+/* الشعار الرسمي — مستخرج من صورة شعار ديوان البلاط السلطاني */
+const FULL_LOGO_SRC = "data:image/png;base64,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";
+const EMBLEM_SRC = "data:image/png;base64,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";
+
+/* ============================================================
+   البيانات المرجعية الثابتة
+   ============================================================ */
+const COMMITTEES = [
+  { id: "tenders", name: "لجنة المناقصات", short: "المناقصات" },
+  { id: "oasis", name: "مجلس إدارة نادي الواحات", short: "نادي الواحات" },
+  { id: "sports", name: "لجنة المنشأة الرياضية", short: "المنشأة الرياضية" },
+  { id: "endowments", name: "لجنة أوقاف الجوامع السلطانية والمساجد", short: "الأوقاف والمساجد" },
+  { id: "other", name: "أخرى", short: "أخرى" },
+];
+
+const MOVEMENT_TYPES = ["محضر اجتماع", "ملخص", "مذكرة", "تقرير", "مخاطبة"];
+
+const ENTITIES = [
+  "مكتب رئيس المكتب",
+  "دائرة الشؤون الإدارية والمالية",
+  "مركز السلطان قابوس العالي للثقافة والعلوم",
+  "المراسم السلطانية",
+  "مكتب أمين عام ديوان البلاط السلطاني",
+  "المديرية العامة للشؤون العامة",
+  "المديرية العامة للشؤون القانونية",
+  "إدارة المشتريات",
+  "المديرية العامة للشؤون المالية والإدارية والموارد البشرية",
+  "المديرية العامة للاتصالات ونظم المعلومات",
+  "المديرية العامة للدراسات والبحوث",
+  "إدارة السجلات",
+  "الإدارة الخاصة",
+  "دائرة الشؤون الفنية",
+];
+
+const ROLE_GROUPS = [
+  { group: "القيادة", roles: ["مدير الدائرة", "مساعد المدير"] },
+  { group: "الشؤون المالية", roles: ["تخصصي أول شؤون مالية"] },
+  { group: "المجالس واللجان", roles: ["تخصصي أول مجالس ولجان"] },
+  { group: "قسم الدراسات", roles: ["رئيس قسم الدراسات", "باحث دراسات", "إداري أول دراسات"] },
+  { group: "قسم التنسيق والمتابعة", roles: ["رئيس قسم التنسيق والمتابعة", "تنفيذي تنسيق ومتابعة", "كاتب أول تنسيق ومتابعة"] },
+];
+const ALL_ROLES = ROLE_GROUPS.flatMap((g) => g.roles);
+
+const TOPIC_STATUSES = ["نشط", "قيد الانتظار", "مغلق"];
+const MOVEMENT_STATUSES = ["قيد الإجراء", "منجز"];
+
+const STORAGE_KEY = "majalis-lijan-v1";
+const AR_MONTHS = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"];
+
+/* ============================================================
+   دوال مساعدة
+   ============================================================ */
+function uid() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+function committeeName(id, custom) {
+  if (id === "other" && custom) return custom;
+  const c = COMMITTEES.find((c) => c.id === id);
+  return c ? c.name : "—";
+}
+function committeeShort(id) {
+  const c = COMMITTEES.find((c) => c.id === id);
+  return c ? c.short : "—";
+}
+function fmtDate(iso) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  return `${d.getDate()} ${AR_MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+}
+function isSameMonth(iso, ref) {
+  const d = new Date(iso);
+  return d.getFullYear() === ref.getFullYear() && d.getMonth() === ref.getMonth();
+}
+function todayInput() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+/* ============================================================
+   بيانات تجريبية أولية
+   ============================================================ */
+function seedData() {
+  const now = new Date();
+  const d = (offset) => {
+    const t = new Date(now);
+    t.setDate(t.getDate() - offset);
+    return t.toISOString().slice(0, 10);
+  };
+  const topics = [
+    { id: "t1", title: "متابعة أعمال لجنة المناقصات للربع الثالث", committeeId: "tenders", customCommittee: "", responsibleRole: "تخصصي أول مجالس ولجان", status: "نشط", description: "متابعة محاضر الاجتماعات والمخاطبات الخاصة باللجنة خلال الربع الثالث.", createdAt: d(40) },
+    { id: "t2", title: "اجتماع مجلس إدارة نادي الواحات الدوري", committeeId: "oasis", customCommittee: "", responsibleRole: "مساعد المدير", status: "نشط", description: "الاجتماع الدوري لمجلس الإدارة ومتابعة تنفيذ قراراته.", createdAt: d(25) },
+    { id: "t3", title: "تحديث ملف المنشأة الرياضية", committeeId: "sports", customCommittee: "", responsibleRole: "رئيس قسم الدراسات", status: "قيد الانتظار", description: "استكمال الدراسة الفنية الخاصة باللجنة.", createdAt: d(18) },
+    { id: "t4", title: "أعمال لجنة أوقاف الجوامع السلطانية والمساجد", committeeId: "endowments", customCommittee: "", responsibleRole: "باحث دراسات", status: "نشط", description: "متابعة التقارير الدورية للجنة.", createdAt: d(10) },
+  ];
+  const movements = [
+    { id: "m1", topicId: "t1", direction: "وارد", type: "محضر اجتماع", entity: "مكتب رئيس المكتب", referenceNumber: "2026/0341", date: d(38), notes: "محضر الاجتماع الفصلي للجنة المناقصات.", responsibleRole: "تخصصي أول مجالس ولجان", status: "منجز", createdAt: d(38) },
+    { id: "m2", topicId: "t1", direction: "صادر", type: "مخاطبة", entity: "إدارة المشتريات", referenceNumber: "2026/0355", date: d(30), notes: "مخاطبة بشأن استكمال مستندات المناقصة.", responsibleRole: "تخصصي أول مجالس ولجان", status: "منجز", createdAt: d(30) },
+    { id: "m3", topicId: "t2", direction: "وارد", type: "تقرير", entity: "المديرية العامة للدراسات والبحوث", referenceNumber: "2026/0362", date: d(20), notes: "تقرير أداء نادي الواحات للربع الثاني.", responsibleRole: "مساعد المدير", status: "منجز", createdAt: d(20) },
+    { id: "m4", topicId: "t2", direction: "صادر", type: "مذكرة", entity: "المديرية العامة للشؤون القانونية", referenceNumber: "2026/0370", date: d(14), notes: "مذكرة لاستيضاح رأي قانوني حول عقد التشغيل.", responsibleRole: "مساعد المدير", status: "قيد الإجراء", createdAt: d(14) },
+    { id: "m5", topicId: "t3", direction: "وارد", type: "ملخص", entity: "مركز السلطان قابوس العالي للثقافة والعلوم", referenceNumber: "2026/0378", date: d(9), notes: "ملخص تنسيقي حول استخدام المنشأة.", responsibleRole: "رئيس قسم الدراسات", status: "قيد الإجراء", createdAt: d(9) },
+    { id: "m6", topicId: "t4", direction: "صادر", type: "تقرير", entity: "مكتب أمين عام ديوان البلاط السلطاني", referenceNumber: "2026/0384", date: d(6), notes: "التقرير الدوري لأعمال لجنة الأوقاف.", responsibleRole: "باحث دراسات", status: "منجز", createdAt: d(6) },
+    { id: "m7", topicId: "t4", direction: "وارد", type: "مخاطبة", entity: "إدارة السجلات", referenceNumber: "2026/0390", date: d(3), notes: "طلب استكمال سجلات اللجنة.", responsibleRole: "باحث دراسات", status: "قيد الإجراء", createdAt: d(3) },
+    { id: "m8", topicId: "t1", direction: "وارد", type: "مذكرة", entity: "دائرة الشؤون الإدارية والمالية", referenceNumber: "2026/0395", date: d(1), notes: "مذكرة تنسيقية بخصوص الاعتمادات المالية.", responsibleRole: "تخصصي أول شؤون مالية", status: "قيد الإجراء", createdAt: d(1) },
+  ];
+  return { topics, movements };
+}
+
+/* ============================================================
+   مكونات صغيرة مشتركة
+   ============================================================ */
+function Seal({ size = 44 }) {
+  return (
+    <img
+      src={EMBLEM_SRC}
+      alt="شعار ديوان البلاط السلطاني"
+      className="shrink-0 object-contain"
+      style={{ width: size, height: size }}
+    />
+  );
+}
+
+const TONE_STYLES = {
+  navy: { background: C.navy800, color: "#fff" },
+  gold: { background: C.gold100, color: C.gold600 },
+  green: { background: "#E4F3E9", color: "#1F7A46" },
+  amber: { background: "#FBEEDC", color: "#A9682B" },
+  gray: { background: "#EDEDED", color: "#6B5A58" },
+};
+function Badge({ tone = "gray", children }) {
+  return (
+    <span
+      className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap"
+      style={TONE_STYLES[tone] || TONE_STYLES.gray}
+    >
+      {children}
+    </span>
+  );
+}
+
+function StatCard({ icon: Icon, label, value, tone }) {
+  return (
+    <div className="bg-white rounded-xl p-4 shadow-sm border-t-2" style={{ borderColor: C.gold500 }}>
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-xs font-semibold" style={{ color: C.slate }}>{label}</span>
+        <div className="rounded-lg p-1.5" style={{ background: tone === "gold" ? C.gold100 : "#EEF2F7" }}>
+          <Icon size={16} color={tone === "gold" ? C.gold600 : C.navy700} />
+        </div>
+      </div>
+      <div className="text-2xl font-extrabold" style={{ color: C.navy950 }}>{value}</div>
+    </div>
+  );
+}
+
+function PageHeader({ title, subtitle, action }) {
+  return (
+    <div className="flex items-start justify-between flex-wrap gap-3 mb-5">
+      <div>
+        <h1 className="text-xl font-extrabold" style={{ color: C.navy950 }}>{title}</h1>
+        {subtitle && <p className="text-sm mt-0.5" style={{ color: C.slate }}>{subtitle}</p>}
+      </div>
+      {action}
+    </div>
+  );
+}
+
+function RefBox({ children }) {
+  return (
+    <span
+      className="inline-block rounded border px-2 py-0.5 text-xs"
+      style={{ borderColor: C.gold500, color: C.navy800, fontFamily: "ui-monospace, 'Courier New', monospace" }}
+    >
+      {children}
+    </span>
+  );
+}
+
+function Modal({ title, onClose, children, wide }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(11,27,51,0.55)" }}>
+      <div className={`bg-white rounded-2xl shadow-xl w-full ${wide ? "max-w-2xl" : "max-w-lg"} max-h-[90vh] overflow-y-auto`}>
+        <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: "#EAE6DA" }}>
+          <h2 className="font-bold text-base" style={{ color: C.navy950 }}>{title}</h2>
+          <button onClick={onClose} className="rounded-full p-1.5 hover:bg-gray-100 transition-colors" aria-label="إغلاق">
+            <X size={18} color={C.slate} />
+          </button>
+        </div>
+        <div className="p-5">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function Field({ label, children }) {
+  return (
+    <div className="mb-4">
+      <label className="block text-sm font-semibold mb-1.5" style={{ color: C.navy800 }}>{label}</label>
+      {children}
+    </div>
+  );
+}
+
+const inputClass =
+  "w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-red-400 transition-shadow";
+const inputStyle = { borderColor: "#D8D2C0", color: C.ink };
+
+function ConfirmInline({ onConfirm, onCancel, label }) {
+  return (
+    <div className="flex items-center gap-2 text-xs">
+      <span style={{ color: C.slate }}>{label || "تأكيد الحذف؟"}</span>
+      <button onClick={onConfirm} className="font-bold text-red-600 hover:underline">نعم</button>
+      <button onClick={onCancel} className="font-bold hover:underline" style={{ color: C.slate }}>تراجع</button>
+    </div>
+  );
+}
+
+/* ============================================================
+   الشريط الجانبي والتنقل
+   ============================================================ */
+const NAV_ITEMS = [
+  { id: "dashboard", label: "لوحة المعلومات", icon: LayoutDashboard },
+  { id: "topics", label: "المواضيع", icon: FileText },
+  { id: "movements", label: "سجل حركة المواضيع", icon: ClipboardList },
+  { id: "entities", label: "الجهات", icon: Building2 },
+  { id: "committees", label: "اللجان والمجالس", icon: Landmark },
+  { id: "team", label: "الفئات الوظيفية", icon: Users },
+];
+
+function Sidebar({ view, setView, onReset, mobileOpen, setMobileOpen }) {
+  return (
+    <>
+      {/* الشريط الجانبي — للشاشات المتوسطة فأكبر */}
+      <aside
+        className="hidden md:flex md:flex-col w-64 shrink-0 h-screen sticky top-0"
+        style={{ background: C.navy950 }}
+      >
+        <div className="flex flex-col items-center gap-2 px-5 pt-6 pb-5">
+          <img src={FULL_LOGO_SRC} alt="شعار ديوان البلاط السلطاني" className="w-28 h-auto" />
+          <div className="font-extrabold text-white leading-tight text-[14px] text-center">دائرة المجالس واللجان</div>
+        </div>
+        <nav className="flex-1 px-3 space-y-1 mt-2">
+          {NAV_ITEMS.map((item) => {
+            const Icon = item.icon;
+            const active = view === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => setView(item.id)}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors relative"
+                style={{
+                  background: active ? "rgba(161,32,36,0.35)" : "transparent",
+                  color: active ? "#FFFFFF" : "#D9C6C4",
+                }}
+              >
+                {active && (
+                  <span className="absolute right-0 top-1.5 bottom-1.5 w-1 rounded-full bg-white" />
+                )}
+                <Icon size={17} />
+                {item.label}
+              </button>
+            );
+          })}
+        </nav>
+        <div className="px-3 pb-5 pt-2">
+          <button
+            onClick={onReset}
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-colors"
+            style={{ color: "#A89592" }}
+          >
+            <RotateCcw size={14} />
+            إعادة تعيين البيانات التجريبية
+          </button>
+        </div>
+      </aside>
+
+      {/* شريط علوي — للشاشات الصغيرة */}
+      <div className="flex md:hidden items-center justify-between px-4 py-3 sticky top-0 z-40" style={{ background: C.navy950 }}>
+        <div className="flex items-center gap-2">
+          <Seal size={34} />
+          <div className="font-extrabold text-white text-sm">دائرة المجالس واللجان</div>
+        </div>
+        <button onClick={() => setMobileOpen(!mobileOpen)} className="p-2 text-white" aria-label="القائمة">
+          <Menu size={20} />
+        </button>
+      </div>
+      {mobileOpen && (
+        <div className="md:hidden sticky top-[57px] z-30 px-2 py-2 flex flex-wrap gap-1.5" style={{ background: C.navy800 }}>
+          {NAV_ITEMS.map((item) => {
+            const Icon = item.icon;
+            const active = view === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => { setView(item.id); setMobileOpen(false); }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold"
+                style={{ background: active ? C.gold500 : "rgba(255,255,255,0.08)", color: active ? "#FFFFFF" : "#E5E9F0" }}
+              >
+                <Icon size={13} />
+                {item.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </>
+  );
+}
+
+/* ============================================================
+   لوحة المعلومات
+   ============================================================ */
+function DashboardView({ data }) {
+  const now = new Date();
+  const stats = useMemo(() => {
+    const totalTopics = data.topics.length;
+    const activeTopics = data.topics.filter((t) => t.status === "نشط").length;
+    const incomingMonth = data.movements.filter((m) => m.direction === "وارد" && isSameMonth(m.date, now)).length;
+    const outgoingMonth = data.movements.filter((m) => m.direction === "صادر" && isSameMonth(m.date, now)).length;
+    const pending = data.movements.filter((m) => m.status === "قيد الإجراء").length;
+    return { totalTopics, activeTopics, incomingMonth, outgoingMonth, pending };
+  }, [data, now]);
+
+  const byCommittee = useMemo(
+    () => COMMITTEES.map((c) => ({ name: c.short, count: data.topics.filter((t) => t.committeeId === c.id).length })),
+    [data.topics]
+  );
+
+  const topicsById = useMemo(() => Object.fromEntries(data.topics.map((t) => [t.id, t])), [data.topics]);
+  const recent = useMemo(
+    () => [...data.movements].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 6),
+    [data.movements]
+  );
+
+  return (
+    <div>
+      <PageHeader title="لوحة المعلومات" subtitle="نظرة عامة على أعمال الدائرة وحركة المواضيع" />
+
+      {/* شريط الملخص — وارد ⇄ صادر */}
+      <div className="rounded-xl p-4 mb-5 flex items-center justify-between flex-wrap gap-4" style={{ background: C.navy950 }}>
+        <div className="flex items-center gap-3">
+          <div className="rounded-full p-2" style={{ background: "rgba(161,32,36,0.14)" }}>
+            <Inbox size={18} color={C.gold500} />
+          </div>
+          <div>
+            <div className="text-[11px]" style={{ color: "#A9B4C6" }}>الوارد هذا الشهر</div>
+            <div className="text-white font-extrabold text-lg">{stats.incomingMonth}</div>
+          </div>
+        </div>
+        <div className="h-8 w-px" style={{ background: "rgba(255,255,255,0.15)" }} />
+        <div className="flex items-center gap-3">
+          <div className="rounded-full p-2" style={{ background: "rgba(161,32,36,0.14)" }}>
+            <Send size={18} color={C.gold500} />
+          </div>
+          <div>
+            <div className="text-[11px]" style={{ color: "#A9B4C6" }}>الصادر هذا الشهر</div>
+            <div className="text-white font-extrabold text-lg">{stats.outgoingMonth}</div>
+          </div>
+        </div>
+        <div className="h-8 w-px hidden sm:block" style={{ background: "rgba(255,255,255,0.15)" }} />
+        <div className="text-xs" style={{ color: "#A9B4C6" }}>
+          إجمالي الحركات المسجّلة: <span className="font-bold text-white">{data.movements.length}</span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+        <StatCard icon={FileText} label="إجمالي المواضيع" value={stats.totalTopics} />
+        <StatCard icon={CheckCircle2} label="مواضيع نشطة" value={stats.activeTopics} />
+        <StatCard icon={Clock} label="حركات قيد الإجراء" value={stats.pending} tone="gold" />
+        <StatCard icon={ClipboardList} label="إجمالي الحركات" value={data.movements.length} />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+        <div className="lg:col-span-2 bg-white rounded-xl p-4 shadow-sm">
+          <h3 className="font-bold text-sm mb-3" style={{ color: C.navy950 }}>المواضيع حسب اللجنة</h3>
+          <div style={{ width: "100%", height: 220 }}>
+            <ResponsiveContainer>
+              <BarChart data={byCommittee} layout="vertical" margin={{ left: 10, right: 10 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#EFE7DD" horizontal={false} />
+                <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11, fill: C.slate }} />
+                <YAxis type="category" dataKey="name" width={90} tick={{ fontSize: 11, fill: C.ink }} />
+                <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #EAE6DA" }} />
+                <Bar dataKey="count" radius={[0, 4, 4, 0]}>
+                  {byCommittee.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div className="lg:col-span-3 bg-white rounded-xl p-4 shadow-sm">
+          <h3 className="font-bold text-sm mb-3" style={{ color: C.navy950 }}>آخر الحركات</h3>
+          {recent.length === 0 ? (
+            <p className="text-sm" style={{ color: C.slate }}>لا توجد حركات مسجّلة بعد.</p>
+          ) : (
+            <div className="divide-y" style={{ borderColor: "#F0ECE0" }}>
+              {recent.map((m) => (
+                <div key={m.id} className="py-2.5 flex items-center justify-between gap-3" style={{ borderColor: "#F0ECE0" }}>
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold truncate" style={{ color: C.ink }}>
+                      {topicsById[m.topicId] ? topicsById[m.topicId].title : "—"}
+                    </div>
+                    <div className="text-xs mt-0.5" style={{ color: C.slate }}>{m.type} · {m.entity || "داخلي"} · {fmtDate(m.date)}</div>
+                  </div>
+                  <Badge tone={m.direction === "وارد" ? "navy" : "gold"}>
+                    {m.direction === "وارد" ? <Inbox size={11} /> : <Send size={11} />}
+                    {m.direction}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   المواضيع
+   ============================================================ */
+function TopicCard({ topic, movementCount, onOpen }) {
+  const statusTone = topic.status === "نشط" ? "green" : topic.status === "قيد الانتظار" ? "amber" : "gray";
+  return (
+    <button
+      onClick={onOpen}
+      className="text-right bg-white rounded-xl p-4 shadow-sm border-t-2 hover:shadow-md transition-shadow w-full"
+      style={{ borderColor: C.gold500 }}
+    >
+      <div className="flex items-start justify-between gap-2 mb-2">
+        <Badge tone="navy">{committeeShort(topic.committeeId)}</Badge>
+        <Badge tone={statusTone}>{topic.status}</Badge>
+      </div>
+      <h3 className="font-bold text-sm mb-1.5 leading-snug" style={{ color: C.navy950 }}>{topic.title}</h3>
+      <p className="text-xs mb-3 line-clamp-2" style={{ color: C.slate }}>{topic.description || "بدون وصف"}</p>
+      <div className="flex items-center justify-between text-xs" style={{ color: C.slate }}>
+        <span>{topic.responsibleRole}</span>
+        <span className="font-semibold">{movementCount} حركة</span>
+      </div>
+    </button>
+  );
+}
+
+function TopicFormModal({ initial, onSave, onClose }) {
+  const [title, setTitle] = useState(initial ? initial.title : "");
+  const [committeeId, setCommitteeId] = useState(initial ? initial.committeeId : COMMITTEES[0].id);
+  const [customCommittee, setCustomCommittee] = useState(initial ? initial.customCommittee || "" : "");
+  const [responsibleRole, setResponsibleRole] = useState(initial ? initial.responsibleRole : ALL_ROLES[0]);
+  const [status, setStatus] = useState(initial ? initial.status : "نشط");
+  const [description, setDescription] = useState(initial ? initial.description : "");
+  const [error, setError] = useState("");
+
+  function handleSave() {
+    if (!title.trim()) { setError("يرجى إدخال عنوان الموضوع."); return; }
+    if (committeeId === "other" && !customCommittee.trim()) { setError("يرجى تحديد اسم اللجنة/المجلس ضمن (أخرى)."); return; }
+    onSave({ title: title.trim(), committeeId, customCommittee: committeeId === "other" ? customCommittee.trim() : "", responsibleRole, status, description: description.trim() });
+  }
+
+  return (
+    <Modal title={initial ? "تعديل الموضوع" : "موضوع جديد"} onClose={onClose}>
+      <Field label="عنوان الموضوع">
+        <input className={inputClass} style={inputStyle} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="مثال: متابعة أعمال لجنة المناقصات" />
+      </Field>
+      <Field label="اللجنة / المجلس">
+        <select className={inputClass} style={inputStyle} value={committeeId} onChange={(e) => setCommitteeId(e.target.value)}>
+          {COMMITTEES.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
+      </Field>
+      {committeeId === "other" && (
+        <Field label="اسم اللجنة/المجلس">
+          <input className={inputClass} style={inputStyle} value={customCommittee} onChange={(e) => setCustomCommittee(e.target.value)} placeholder="حدد الاسم" />
+        </Field>
+      )}
+      <Field label="الجهة/الفئة المسؤولة">
+        <select className={inputClass} style={inputStyle} value={responsibleRole} onChange={(e) => setResponsibleRole(e.target.value)}>
+          {ALL_ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+        </select>
+      </Field>
+      {initial && (
+        <Field label="الحالة">
+          <select className={inputClass} style={inputStyle} value={status} onChange={(e) => setStatus(e.target.value)}>
+            {TOPIC_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </Field>
+      )}
+      <Field label="الوصف">
+        <textarea className={inputClass} style={inputStyle} rows={3} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="وصف مختصر للموضوع" />
+      </Field>
+      {error && <p className="text-xs text-red-600 mb-3">{error}</p>}
+      <div className="flex gap-2 justify-end mt-2">
+        <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm font-semibold" style={{ color: C.slate }}>إلغاء</button>
+        <button onClick={handleSave} className="px-4 py-2 rounded-lg text-sm font-bold text-white" style={{ background: C.navy950 }}>حفظ</button>
+      </div>
+    </Modal>
+  );
+}
+
+function TopicDetailModal({ topic, movements, onClose, onEdit, onAddMovement, onDeleteMovement }) {
+  const [confirmId, setConfirmId] = useState(null);
+  const statusTone = topic.status === "نشط" ? "green" : topic.status === "قيد الانتظار" ? "amber" : "gray";
+  const sorted = [...movements].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  return (
+    <Modal title="تفاصيل الموضوع" onClose={onClose} wide>
+      <div className="flex items-start justify-between gap-3 mb-4">
+        <div>
+          <div className="flex items-center gap-2 mb-1.5">
+            <Badge tone="navy">{committeeName(topic.committeeId, topic.customCommittee)}</Badge>
+            <Badge tone={statusTone}>{topic.status}</Badge>
+          </div>
+          <h3 className="font-extrabold text-base" style={{ color: C.navy950 }}>{topic.title}</h3>
+          <p className="text-sm mt-1" style={{ color: C.slate }}>{topic.description || "بدون وصف"}</p>
+          <p className="text-xs mt-2" style={{ color: C.slate }}>الجهة المسؤولة: <span className="font-semibold">{topic.responsibleRole}</span> · أُنشئ في {fmtDate(topic.createdAt)}</p>
+        </div>
+        <button onClick={onEdit} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0" style={{ background: C.gold100, color: C.gold600 }}>
+          <Pencil size={13} /> تعديل
+        </button>
+      </div>
+
+      <div className="flex items-center justify-between mb-2">
+        <h4 className="font-bold text-sm" style={{ color: C.navy950 }}>حركة الموضوع ({sorted.length})</h4>
+        <button onClick={onAddMovement} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold text-white" style={{ background: C.navy950 }}>
+          <Plus size={13} /> حركة جديدة
+        </button>
+      </div>
+
+      {sorted.length === 0 ? (
+        <p className="text-sm py-6 text-center" style={{ color: C.slate }}>لا توجد حركات مسجّلة لهذا الموضوع بعد.</p>
+      ) : (
+        <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+          {sorted.map((m) => (
+            <div key={m.id} className="rounded-lg border p-3" style={{ borderColor: "#EFE7DD" }}>
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Badge tone={m.direction === "وارد" ? "navy" : "gold"}>
+                    {m.direction === "وارد" ? <Inbox size={11} /> : <Send size={11} />} {m.direction}
+                  </Badge>
+                  <span className="text-xs font-semibold" style={{ color: C.ink }}>{m.type}</span>
+                  <Badge tone={m.status === "منجز" ? "green" : "amber"}>{m.status}</Badge>
+                </div>
+                {confirmId === m.id ? (
+                  <ConfirmInline onConfirm={() => { onDeleteMovement(m.id); setConfirmId(null); }} onCancel={() => setConfirmId(null)} />
+                ) : (
+                  <button onClick={() => setConfirmId(m.id)} className="text-gray-400 hover:text-red-500 transition-colors" aria-label="حذف">
+                    <Trash2 size={14} />
+                  </button>
+                )}
+              </div>
+              <p className="text-xs mt-1.5" style={{ color: C.slate }}>{m.entity || "داخلي"} · {fmtDate(m.date)} {m.referenceNumber && <> · <RefBox>{m.referenceNumber}</RefBox></>}</p>
+              {m.notes && <p className="text-xs mt-1.5" style={{ color: C.ink }}>{m.notes}</p>}
+              <p className="text-[11px] mt-1.5" style={{ color: C.slate }}>المسؤول: {m.responsibleRole}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </Modal>
+  );
+}
+
+function TopicsView({ data, onAddTopic, onUpdateTopic, onAddMovement, onDeleteMovement }) {
+  const [filter, setFilter] = useState("all");
+  const [search, setSearch] = useState("");
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingTopic, setEditingTopic] = useState(null);
+  const [detailId, setDetailId] = useState(null);
+  const [presetTopicForMovement, setPresetTopicForMovement] = useState(null);
+  const [movementFormOpen, setMovementFormOpen] = useState(false);
+
+  const filtered = data.topics.filter((t) => {
+    if (filter !== "all" && t.committeeId !== filter) return false;
+    if (search && !t.title.includes(search) && !(t.description || "").includes(search)) return false;
+    return true;
+  });
+
+  const detailTopic = data.topics.find((t) => t.id === detailId);
+  const detailMovements = detailTopic ? data.movements.filter((m) => m.topicId === detailTopic.id) : [];
+
+  return (
+    <div>
+      <PageHeader
+        title="المواضيع"
+        subtitle="جميع مواضيع اللجان والمجالس التي تتابعها الدائرة"
+        action={
+          <button onClick={() => { setEditingTopic(null); setFormOpen(true); }} className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold text-white" style={{ background: C.navy950 }}>
+            <Plus size={16} /> موضوع جديد
+          </button>
+        }
+      />
+
+      <div className="flex flex-wrap items-center gap-2 mb-5">
+        <button onClick={() => setFilter("all")} className="px-3 py-1.5 rounded-full text-xs font-semibold" style={{ background: filter === "all" ? C.navy950 : "#EEEAE0", color: filter === "all" ? "#fff" : C.navy800 }}>الكل</button>
+        {COMMITTEES.map((c) => (
+          <button key={c.id} onClick={() => setFilter(c.id)} className="px-3 py-1.5 rounded-full text-xs font-semibold" style={{ background: filter === c.id ? C.navy950 : "#EEEAE0", color: filter === c.id ? "#fff" : C.navy800 }}>{c.short}</button>
+        ))}
+        <div className="relative mr-auto">
+          <Search size={14} className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: C.slate }} />
+          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="بحث في المواضيع..." className="rounded-full border pr-9 pl-3 py-1.5 text-xs w-48 outline-none focus:ring-2 focus:ring-red-400" style={{ borderColor: "#D8D2C0" }} />
+        </div>
+      </div>
+
+      {filtered.length === 0 ? (
+        <div className="text-center py-16 bg-white rounded-xl shadow-sm">
+          <p className="text-sm" style={{ color: C.slate }}>لا توجد مواضيع مطابقة. أضف موضوعًا جديدًا للبدء.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filtered.map((t) => (
+            <TopicCard key={t.id} topic={t} movementCount={data.movements.filter((m) => m.topicId === t.id).length} onOpen={() => setDetailId(t.id)} />
+          ))}
+        </div>
+      )}
+
+      {formOpen && (
+        <TopicFormModal
+          initial={editingTopic}
+          onClose={() => setFormOpen(false)}
+          onSave={(payload) => {
+            if (editingTopic) onUpdateTopic(editingTopic.id, payload);
+            else onAddTopic(payload);
+            setFormOpen(false);
+          }}
+        />
+      )}
+
+      {detailTopic && !movementFormOpen && (
+        <TopicDetailModal
+          topic={detailTopic}
+          movements={detailMovements}
+          onClose={() => setDetailId(null)}
+          onEdit={() => { setEditingTopic(detailTopic); setFormOpen(true); setDetailId(null); }}
+          onAddMovement={() => { setPresetTopicForMovement(detailTopic.id); setMovementFormOpen(true); }}
+          onDeleteMovement={onDeleteMovement}
+        />
+      )}
+
+      {movementFormOpen && (
+        <MovementFormModal
+          topics={data.topics}
+          presetTopicId={presetTopicForMovement}
+          onClose={() => { setMovementFormOpen(false); setPresetTopicForMovement(null); }}
+          onSave={(payload) => { onAddMovement(payload); setMovementFormOpen(false); setPresetTopicForMovement(null); }}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ============================================================
+   نموذج حركة جديدة
+   ============================================================ */
+function MovementFormModal({ topics, presetTopicId, onClose, onSave }) {
+  const [topicId, setTopicId] = useState(presetTopicId || (topics[0] ? topics[0].id : ""));
+  const [direction, setDirection] = useState("وارد");
+  const [type, setType] = useState(MOVEMENT_TYPES[0]);
+  const [entity, setEntity] = useState("");
+  const [referenceNumber, setReferenceNumber] = useState("");
+  const [date, setDate] = useState(todayInput());
+  const [responsibleRole, setResponsibleRole] = useState(ALL_ROLES[0]);
+  const [status, setStatus] = useState("قيد الإجراء");
+  const [notes, setNotes] = useState("");
+  const [error, setError] = useState("");
+
+  function handleSave() {
+    if (!topicId) { setError("يرجى اختيار الموضوع المرتبط بالحركة."); return; }
+    if (!date) { setError("يرجى تحديد التاريخ."); return; }
+    onSave({ topicId, direction, type, entity, referenceNumber: referenceNumber.trim(), date, responsibleRole, status, notes: notes.trim() });
+  }
+
+  return (
+    <Modal title="حركة جديدة" onClose={onClose}>
+      {!presetTopicId && (
+        <Field label="الموضوع">
+          <select className={inputClass} style={inputStyle} value={topicId} onChange={(e) => setTopicId(e.target.value)}>
+            {topics.map((t) => <option key={t.id} value={t.id}>{t.title}</option>)}
+          </select>
+        </Field>
+      )}
+      <Field label="الاتجاه">
+        <div className="flex gap-2">
+          {["وارد", "صادر"].map((d) => (
+            <button key={d} type="button" onClick={() => setDirection(d)} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-bold border" style={{ background: direction === d ? C.navy950 : "#fff", color: direction === d ? "#fff" : C.navy800, borderColor: direction === d ? C.navy950 : "#D8D2C0" }}>
+              {d === "وارد" ? <Inbox size={14} /> : <Send size={14} />} {d}
+            </button>
+          ))}
+        </div>
+      </Field>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="نوع الحركة">
+          <select className={inputClass} style={inputStyle} value={type} onChange={(e) => setType(e.target.value)}>
+            {MOVEMENT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+          </select>
+        </Field>
+        <Field label="التاريخ">
+          <input type="date" className={inputClass} style={inputStyle} value={date} onChange={(e) => setDate(e.target.value)} />
+        </Field>
+      </div>
+      <Field label="الجهة">
+        <select className={inputClass} style={inputStyle} value={entity} onChange={(e) => setEntity(e.target.value)}>
+          <option value="">— داخلي / بدون جهة خارجية —</option>
+          {ENTITIES.map((e) => <option key={e} value={e}>{e}</option>)}
+        </select>
+      </Field>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="رقم المرجع (اختياري)">
+          <input className={inputClass} style={inputStyle} value={referenceNumber} onChange={(e) => setReferenceNumber(e.target.value)} placeholder="مثال: 2026/0123" />
+        </Field>
+        <Field label="الحالة">
+          <select className={inputClass} style={inputStyle} value={status} onChange={(e) => setStatus(e.target.value)}>
+            {MOVEMENT_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </Field>
+      </div>
+      <Field label="الجهة/الفئة المسؤولة">
+        <select className={inputClass} style={inputStyle} value={responsibleRole} onChange={(e) => setResponsibleRole(e.target.value)}>
+          {ALL_ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+        </select>
+      </Field>
+      <Field label="ملاحظات">
+        <textarea className={inputClass} style={inputStyle} rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="تفاصيل إضافية" />
+      </Field>
+      {error && <p className="text-xs text-red-600 mb-3">{error}</p>}
+      <div className="flex gap-2 justify-end mt-2">
+        <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm font-semibold" style={{ color: C.slate }}>إلغاء</button>
+        <button onClick={handleSave} className="px-4 py-2 rounded-lg text-sm font-bold text-white" style={{ background: C.navy950 }}>حفظ الحركة</button>
+      </div>
+    </Modal>
+  );
+}
+
+/* ============================================================
+   سجل حركة المواضيع (عام)
+   ============================================================ */
+const emptyFilters = { direction: "all", type: "all", entity: "all", committee: "all", search: "" };
+
+function MovementsView({ data, onAddMovement, onDeleteMovement }) {
+  const [filters, setFilters] = useState(emptyFilters);
+  const [formOpen, setFormOpen] = useState(false);
+  const [confirmId, setConfirmId] = useState(null);
+  const topicsById = useMemo(() => Object.fromEntries(data.topics.map((t) => [t.id, t])), [data.topics]);
+
+  const filtered = useMemo(() => {
+    return [...data.movements]
+      .filter((m) => {
+        const topic = topicsById[m.topicId];
+        if (filters.direction !== "all" && m.direction !== filters.direction) return false;
+        if (filters.type !== "all" && m.type !== filters.type) return false;
+        if (filters.entity !== "all" && m.entity !== filters.entity) return false;
+        if (filters.committee !== "all" && (!topic || topic.committeeId !== filters.committee)) return false;
+        if (filters.search) {
+          const s = filters.search;
+          const hay = `${topic ? topic.title : ""} ${m.notes || ""} ${m.referenceNumber || ""}`;
+          if (!hay.includes(s)) return false;
+        }
+        return true;
+      })
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
+  }, [data.movements, filters, topicsById]);
+
+  return (
+    <div>
+      <PageHeader
+        title="سجل حركة المواضيع"
+        subtitle="الوارد والصادر لجميع المواضيع — قابل للفلترة والبحث"
+        action={
+          <button onClick={() => setFormOpen(true)} className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold text-white" style={{ background: C.navy950 }}>
+            <Plus size={16} /> حركة جديدة
+          </button>
+        }
+      />
+
+      <div className="bg-white rounded-xl p-3 mb-4 shadow-sm flex flex-wrap items-center gap-2">
+        <Filter size={14} style={{ color: C.slate }} />
+        <select className="rounded-lg border px-2.5 py-1.5 text-xs outline-none" style={inputStyle} value={filters.direction} onChange={(e) => setFilters({ ...filters, direction: e.target.value })}>
+          <option value="all">كل الاتجاهات</option>
+          <option value="وارد">وارد</option>
+          <option value="صادر">صادر</option>
+        </select>
+        <select className="rounded-lg border px-2.5 py-1.5 text-xs outline-none" style={inputStyle} value={filters.type} onChange={(e) => setFilters({ ...filters, type: e.target.value })}>
+          <option value="all">كل الأنواع</option>
+          {MOVEMENT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+        </select>
+        <select className="rounded-lg border px-2.5 py-1.5 text-xs outline-none" style={inputStyle} value={filters.committee} onChange={(e) => setFilters({ ...filters, committee: e.target.value })}>
+          <option value="all">كل اللجان</option>
+          {COMMITTEES.map((c) => <option key={c.id} value={c.id}>{c.short}</option>)}
+        </select>
+        <select className="rounded-lg border px-2.5 py-1.5 text-xs outline-none max-w-[160px]" style={inputStyle} value={filters.entity} onChange={(e) => setFilters({ ...filters, entity: e.target.value })}>
+          <option value="all">كل الجهات</option>
+          {ENTITIES.map((e) => <option key={e} value={e}>{e}</option>)}
+        </select>
+        <input value={filters.search} onChange={(e) => setFilters({ ...filters, search: e.target.value })} placeholder="بحث..." className="rounded-lg border px-2.5 py-1.5 text-xs outline-none w-32" style={inputStyle} />
+        <button onClick={() => setFilters(emptyFilters)} className="flex items-center gap-1 text-xs font-semibold mr-auto" style={{ color: C.slate }}>
+          <RotateCcw size={12} /> إعادة تعيين
+        </button>
+      </div>
+
+      {filtered.length === 0 ? (
+        <div className="text-center py-16 bg-white rounded-xl shadow-sm">
+          <p className="text-sm" style={{ color: C.slate }}>لا توجد حركات مطابقة لهذه الفلاتر.</p>
+        </div>
+      ) : (
+        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+          {filtered.map((m, i) => {
+            const topic = topicsById[m.topicId];
+            return (
+              <div key={m.id} className="flex items-center gap-3 px-4 py-3 flex-wrap" style={{ borderTop: i === 0 ? "none" : `1px solid #F0ECE0` }}>
+                <Badge tone={m.direction === "وارد" ? "navy" : "gold"}>
+                  {m.direction === "وارد" ? <Inbox size={11} /> : <Send size={11} />} {m.direction}
+                </Badge>
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-semibold truncate" style={{ color: C.ink }}>{topic ? topic.title : "—"}</div>
+                  <div className="text-xs mt-0.5" style={{ color: C.slate }}>
+                    {m.type} · {m.entity || "داخلي"} · {fmtDate(m.date)} {m.referenceNumber && <> · <RefBox>{m.referenceNumber}</RefBox></>}
+                  </div>
+                </div>
+                <Badge tone={m.status === "منجز" ? "green" : "amber"}>{m.status}</Badge>
+                <span className="text-xs hidden lg:inline" style={{ color: C.slate }}>{m.responsibleRole}</span>
+                {confirmId === m.id ? (
+                  <ConfirmInline onConfirm={() => { onDeleteMovement(m.id); setConfirmId(null); }} onCancel={() => setConfirmId(null)} />
+                ) : (
+                  <button onClick={() => setConfirmId(m.id)} className="text-gray-400 hover:text-red-500 transition-colors" aria-label="حذف">
+                    <Trash2 size={14} />
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {formOpen && (
+        <MovementFormModal
+          topics={data.topics}
+          presetTopicId={null}
+          onClose={() => setFormOpen(false)}
+          onSave={(payload) => { onAddMovement(payload); setFormOpen(false); }}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ============================================================
+   الجهات
+   ============================================================ */
+function EntitiesView({ data }) {
+  const counts = useMemo(() => {
+    const map = {};
+    ENTITIES.forEach((e) => (map[e] = 0));
+    data.movements.forEach((m) => { if (m.entity && map[m.entity] !== undefined) map[m.entity] += 1; });
+    return map;
+  }, [data.movements]);
+
+  return (
+    <div>
+      <PageHeader title="الجهات" subtitle="الجهات التي تتعامل معها الدائرة ضمن أعمال المجالس واللجان" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {ENTITIES.map((e) => (
+          <div key={e} className="bg-white rounded-xl p-4 shadow-sm border-t-2 flex items-center justify-between gap-3" style={{ borderColor: C.gold500 }}>
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="rounded-lg p-2 shrink-0" style={{ background: "#EEF2F7" }}>
+                <Building2 size={16} color={C.navy700} />
+              </div>
+              <span className="text-sm font-semibold truncate" style={{ color: C.ink }}>{e}</span>
+            </div>
+            <span className="text-xs font-bold shrink-0" style={{ color: C.slate }}>{counts[e]} حركة</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   اللجان والمجالس
+   ============================================================ */
+function CommitteesView({ data }) {
+  return (
+    <div>
+      <PageHeader title="اللجان والمجالس" subtitle="التصنيفات الرئيسية للمواضيع التي تتابعها الدائرة" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {COMMITTEES.map((c) => {
+          const topics = data.topics.filter((t) => t.committeeId === c.id);
+          const active = topics.filter((t) => t.status === "نشط").length;
+          const pending = topics.filter((t) => t.status === "قيد الانتظار").length;
+          const closed = topics.filter((t) => t.status === "مغلق").length;
+          return (
+            <div key={c.id} className="bg-white rounded-xl p-5 shadow-sm border-t-2" style={{ borderColor: C.gold500 }}>
+              <div className="flex items-center gap-3 mb-3">
+                <div className="rounded-full p-2.5" style={{ background: C.navy950 }}>
+                  <Landmark size={18} color={C.gold500} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm" style={{ color: C.navy950 }}>{c.name}</h3>
+                  <span className="text-xs" style={{ color: C.slate }}>{topics.length} موضوع</span>
+                </div>
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                <Badge tone="green">{active} نشط</Badge>
+                <Badge tone="amber">{pending} قيد الانتظار</Badge>
+                <Badge tone="gray">{closed} مغلق</Badge>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   الفئات الوظيفية
+   ============================================================ */
+function TeamView() {
+  return (
+    <div>
+      <PageHeader title="الفئات الوظيفية" subtitle="هيكل موظفي الدائرة حسب أقسام العمل" />
+      <div className="space-y-5">
+        {ROLE_GROUPS.map((g) => (
+          <div key={g.group} className="bg-white rounded-xl p-4 shadow-sm">
+            <h3 className="font-bold text-sm mb-3 flex items-center gap-2" style={{ color: C.navy950 }}>
+              <span className="w-1.5 h-4 rounded-full" style={{ background: C.gold500 }} />
+              {g.group}
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+              {g.roles.map((r) => (
+                <div key={r} className="flex items-center gap-2.5 rounded-lg p-2.5" style={{ background: C.paper }}>
+                  <div className="rounded-full p-1.5 shrink-0" style={{ background: "#fff" }}>
+                    <Users size={13} color={C.navy700} />
+                  </div>
+                  <span className="text-xs font-semibold" style={{ color: C.ink }}>{r}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   التطبيق الرئيسي
+   ============================================================ */
+export default function App() {
+  const [view, setView] = useState("dashboard");
+  const [data, setData] = useState({ topics: [], movements: [] });
+  const [loading, setLoading] = useState(true);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        const res = await window.storage.get(STORAGE_KEY, true);
+        if (!cancelled) {
+          if (res && res.value) {
+            setData(JSON.parse(res.value));
+          } else {
+            const seed = seedData();
+            setData(seed);
+            window.storage.set(STORAGE_KEY, JSON.stringify(seed), true).catch(() => {});
+          }
+        }
+      } catch (e) {
+        if (!cancelled) {
+          const seed = seedData();
+          setData(seed);
+          window.storage.set(STORAGE_KEY, JSON.stringify(seed), true).catch(() => {});
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, []);
+
+  async function persist(next) {
+    setData(next);
+    try { await window.storage.set(STORAGE_KEY, JSON.stringify(next), true); } catch (e) { console.error("storage error", e); }
+  }
+
+  function addTopic(payload) {
+    const t = { id: uid(), createdAt: new Date().toISOString(), ...payload };
+    persist({ ...data, topics: [t, ...data.topics] });
+  }
+  function updateTopic(id, patch) {
+    persist({ ...data, topics: data.topics.map((t) => (t.id === id ? { ...t, ...patch } : t)) });
+  }
+  function addMovement(payload) {
+    const m = { id: uid(), createdAt: new Date().toISOString(), ...payload };
+    persist({ ...data, movements: [m, ...data.movements] });
+  }
+  function deleteMovement(id) {
+    persist({ ...data, movements: data.movements.filter((m) => m.id !== id) });
+  }
+  function resetData() {
+    persist(seedData());
+  }
+
+  if (loading) {
+    return (
+      <div dir="rtl" className="min-h-screen flex items-center justify-center" style={{ background: C.paper, fontFamily: "'Cairo', sans-serif" }}>
+        <style>{`@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap');`}</style>
+        <div className="flex items-center gap-3">
+          <Seal size={36} />
+          <span className="text-sm font-semibold" style={{ color: C.navy800 }}>جارِ التحميل...</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div dir="rtl" className="min-h-screen flex" style={{ background: C.paper, fontFamily: "'Cairo', sans-serif", color: C.ink }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap');
+        * { font-family: 'Cairo', sans-serif; }
+        .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+      `}</style>
+
+      <Sidebar view={view} setView={setView} onReset={resetData} mobileOpen={mobileNavOpen} setMobileOpen={setMobileNavOpen} />
+
+      <main className="flex-1 min-w-0 p-4 md:p-8">
+        {view === "dashboard" && <DashboardView data={data} />}
+        {view === "topics" && (
+          <TopicsView
+            data={data}
+            onAddTopic={addTopic}
+            onUpdateTopic={updateTopic}
+            onAddMovement={addMovement}
+            onDeleteMovement={deleteMovement}
+          />
+        )}
+        {view === "movements" && <MovementsView data={data} onAddMovement={addMovement} onDeleteMovement={deleteMovement} />}
+        {view === "entities" && <EntitiesView data={data} />}
+        {view === "committees" && <CommitteesView data={data} />}
+        {view === "team" && <TeamView />}
+      </main>
+    </div>
+  );
+}
