@@ -418,16 +418,73 @@ function todayInput() {
    ============================================================ */
 const SUPABASE_URL = "https://falypezlnmnrurinpsiw.supabase.co";
 const SUPABASE_KEY = "sb_publishable_iZaB4y72Yi97MJKevYHXtA_IcqnBWF4";
+const SESSION_KEY = "majalis-lijan-session";
+let currentSession = null;
+try {
+  currentSession = JSON.parse(localStorage.getItem(SESSION_KEY) || "null");
+} catch (e) {
+  currentSession = null;
+}
+function getAccessToken() {
+  return currentSession ? currentSession.accessToken : null;
+}
+function setSession(s) {
+  currentSession = s;
+  try {
+    localStorage.setItem(SESSION_KEY, JSON.stringify(s));
+  } catch (e) {}
+}
+function clearSession() {
+  currentSession = null;
+  try {
+    localStorage.removeItem(SESSION_KEY);
+  } catch (e) {}
+}
+async function refreshSession() {
+  if (!currentSession || !currentSession.refreshToken) throw new Error("no session");
+  const res = await fetch(SUPABASE_URL + "/auth/v1/token?grant_type=refresh_token", {
+    method: "POST",
+    headers: {
+      apikey: SUPABASE_KEY,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      refresh_token: currentSession.refreshToken
+    })
+  });
+  if (!res.ok) throw new Error("refresh failed");
+  const body = await res.json();
+  setSession(Object.assign({}, currentSession, {
+    accessToken: body.access_token,
+    refreshToken: body.refresh_token
+  }));
+  return body.access_token;
+}
 async function sb(path, options) {
   options = options || {};
+  const token = getAccessToken() || SUPABASE_KEY;
   const headers = Object.assign({
     apikey: SUPABASE_KEY,
-    Authorization: "Bearer " + SUPABASE_KEY,
+    Authorization: "Bearer " + token,
     "Content-Type": "application/json"
   }, options.headers || {});
-  const res = await fetch(SUPABASE_URL + "/rest/v1/" + path, Object.assign({}, options, {
+  let res = await fetch(SUPABASE_URL + "/rest/v1/" + path, Object.assign({}, options, {
     headers: headers
   }));
+  if (res.status === 401 && currentSession) {
+    try {
+      const newToken = await refreshSession();
+      const retryHeaders = Object.assign({}, headers, {
+        Authorization: "Bearer " + newToken
+      });
+      res = await fetch(SUPABASE_URL + "/rest/v1/" + path, Object.assign({}, options, {
+        headers: retryHeaders
+      }));
+    } catch (e) {
+      clearSession();
+      throw new Error("انتهت الجلسة، يرجى تسجيل الدخول من جديد");
+    }
+  }
   if (!res.ok) {
     const text = await res.text().catch(() => "");
     throw new Error("supabase " + res.status + ": " + text);
@@ -490,10 +547,11 @@ function movementFromRow(row) {
   };
 }
 async function fetchAllData() {
-  const [topicRows, movementRows] = await Promise.all([sb("topics?select=*&order=created_at.desc"), sb("movements?select=*&order=date.desc")]);
+  const [topicRows, movementRows, employeeRows] = await Promise.all([sb("topics?select=*&order=created_at.desc"), sb("movements?select=*&order=date.desc"), sb("employees?select=*&order=employee_number.asc")]);
   return {
     topics: topicRows.map(topicFromRow),
-    movements: movementRows.map(movementFromRow)
+    movements: movementRows.map(movementFromRow),
+    employees: employeeRows.map(employeeFromRow)
   };
 }
 async function insertTopic(payload) {
@@ -529,6 +587,116 @@ async function insertMovement(payload) {
 async function deleteMovementRow(id) {
   await sb("movements?id=eq." + id, {
     method: "DELETE"
+  });
+}
+
+/* ============================================================
+   الدخول والموظفون
+   ============================================================ */
+function employeeEmail(employeeNumber) {
+  return employeeNumber.trim() + "@majalis-lijan.local";
+}
+function employeeFromRow(row) {
+  return {
+    id: row.id,
+    employeeNumber: row.employee_number,
+    fullName: row.full_name,
+    jobTitle: row.job_title,
+    isAdmin: row.is_admin
+  };
+}
+function sectionForTitle(title) {
+  if (title.includes("مدير") || title.includes("مساعد")) return "القيادة";
+  if (title.includes("مالي")) return "الشؤون المالية";
+  if (title.includes("مجالس") || title.includes("لجان")) return "المجالس واللجان";
+  if (title.includes("دراس")) return "قسم الدراسات";
+  if (title.includes("تنسيق") || title.includes("متابعة")) return "قسم التنسيق والمتابعة";
+  return "أخرى";
+}
+async function authLogin(employeeNumber, password) {
+  const res = await fetch(SUPABASE_URL + "/auth/v1/token?grant_type=password", {
+    method: "POST",
+    headers: {
+      apikey: SUPABASE_KEY,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      email: employeeEmail(employeeNumber),
+      password: password
+    })
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error("الرقم الوظيفي أو رمز الدخول غير صحيح.");
+  }
+  const rows = await sb("employees?id=eq." + body.user.id + "&select=*", {
+    headers: {
+      Authorization: "Bearer " + body.access_token
+    }
+  });
+  const employeeRow = rows && rows[0];
+  if (!employeeRow) throw new Error("لم يتم العثور على بيانات الموظف.");
+  const employee = employeeFromRow(employeeRow);
+  setSession({
+    accessToken: body.access_token,
+    refreshToken: body.refresh_token,
+    employee: employee
+  });
+  return employee;
+}
+function authLogout() {
+  clearSession();
+}
+async function authChangePassword(employeeNumber, oldPassword, newPassword) {
+  const verifyRes = await fetch(SUPABASE_URL + "/auth/v1/token?grant_type=password", {
+    method: "POST",
+    headers: {
+      apikey: SUPABASE_KEY,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      email: employeeEmail(employeeNumber),
+      password: oldPassword
+    })
+  });
+  if (!verifyRes.ok) throw new Error("رمز الدخول الحالي غير صحيح.");
+  const verifyBody = await verifyRes.json();
+  const res = await fetch(SUPABASE_URL + "/auth/v1/user", {
+    method: "PUT",
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: "Bearer " + verifyBody.access_token,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      password: newPassword
+    })
+  });
+  if (!res.ok) throw new Error("تعذّر تغيير رمز الدخول.");
+  setSession(Object.assign({}, currentSession, {
+    accessToken: verifyBody.access_token,
+    refreshToken: verifyBody.refresh_token
+  }));
+}
+async function fetchEmployees() {
+  const rows = await sb("employees?select=*&order=employee_number.asc");
+  return rows.map(employeeFromRow);
+}
+async function rpcSetAdmin(employeeNumber, makeAdmin) {
+  await sb("rpc/set_employee_admin", {
+    method: "POST",
+    body: JSON.stringify({
+      p_employee_number: employeeNumber,
+      p_make_admin: makeAdmin
+    })
+  });
+}
+async function rpcResetPassword(employeeNumber) {
+  await sb("rpc/admin_reset_password", {
+    method: "POST",
+    body: JSON.stringify({
+      p_employee_number: employeeNumber
+    })
   });
 }
 
@@ -719,6 +887,172 @@ function ConfirmInline({
 }
 
 /* ============================================================
+   تسجيل الدخول وتغيير رمز الدخول
+   ============================================================ */
+function LoginScreen({
+  onLogin
+}) {
+  const [employeeNumber, setEmployeeNumber] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  async function handleSubmit() {
+    if (!employeeNumber.trim() || !password) {
+      setError("يرجى إدخال الرقم الوظيفي ورمز الدخول.");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    try {
+      await onLogin(employeeNumber.trim(), password);
+    } catch (e) {
+      setError(e.message || "تعذّر تسجيل الدخول.");
+    } finally {
+      setBusy(false);
+    }
+  }
+  return /*#__PURE__*/React.createElement("div", {
+    dir: "rtl",
+    className: "min-h-screen flex items-center justify-center p-6",
+    style: {
+      background: C.paper,
+      fontFamily: "'Cairo', sans-serif"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "w-full max-w-sm bg-white rounded-2xl shadow-lg p-7"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex flex-col items-center mb-6"
+  }, /*#__PURE__*/React.createElement("img", {
+    src: FULL_LOGO_SRC,
+    alt: "شعار ديوان البلاط السلطاني",
+    className: "w-24 h-auto mb-3"
+  }), /*#__PURE__*/React.createElement("h1", {
+    className: "font-extrabold text-sm text-center",
+    style: {
+      color: C.navy950
+    }
+  }, "دائرة المجالس واللجان"), /*#__PURE__*/React.createElement("p", {
+    className: "text-xs mt-1",
+    style: {
+      color: C.slate
+    }
+  }, "تسجيل الدخول إلى المنصة")), /*#__PURE__*/React.createElement(Field, {
+    label: "الرقم الوظيفي"
+  }, /*#__PURE__*/React.createElement("input", {
+    className: inputClass,
+    style: inputStyle,
+    value: employeeNumber,
+    onChange: e => setEmployeeNumber(e.target.value),
+    onKeyDown: e => {
+      if (e.key === "Enter") handleSubmit();
+    },
+    placeholder: "مثال: 3001",
+    inputMode: "numeric",
+    autoFocus: true
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "رمز الدخول"
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "password",
+    className: inputClass,
+    style: inputStyle,
+    value: password,
+    onChange: e => setPassword(e.target.value),
+    onKeyDown: e => {
+      if (e.key === "Enter") handleSubmit();
+    }
+  })), error && /*#__PURE__*/React.createElement("p", {
+    className: "text-xs text-red-600 mb-3"
+  }, error), /*#__PURE__*/React.createElement("button", {
+    onClick: handleSubmit,
+    disabled: busy,
+    className: "w-full px-4 py-2.5 rounded-lg text-sm font-bold text-white disabled:opacity-60 transition-opacity",
+    style: {
+      background: C.navy950
+    }
+  }, busy ? "جارِ الدخول..." : "دخول")));
+}
+function ChangePasswordModal({
+  employeeNumber,
+  onClose,
+  onChanged
+}) {
+  const [oldPassword, setOldPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  async function handleSave() {
+    if (!oldPassword || !newPassword) {
+      setError("يرجى تعبئة جميع الحقول.");
+      return;
+    }
+    if (newPassword.length < 4) {
+      setError("رمز الدخول الجديد قصير جدًا.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setError("رمز الدخول الجديد غير متطابق في الحقلين.");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    try {
+      await authChangePassword(employeeNumber, oldPassword, newPassword);
+      onChanged();
+    } catch (e) {
+      setError(e.message || "تعذّر تغيير رمز الدخول.");
+    } finally {
+      setBusy(false);
+    }
+  }
+  return /*#__PURE__*/React.createElement(Modal, {
+    title: "تغيير رمز الدخول",
+    onClose: onClose
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "رمز الدخول الحالي"
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "password",
+    className: inputClass,
+    style: inputStyle,
+    value: oldPassword,
+    onChange: e => setOldPassword(e.target.value)
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "رمز الدخول الجديد"
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "password",
+    className: inputClass,
+    style: inputStyle,
+    value: newPassword,
+    onChange: e => setNewPassword(e.target.value)
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "تأكيد رمز الدخول الجديد"
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "password",
+    className: inputClass,
+    style: inputStyle,
+    value: confirmPassword,
+    onChange: e => setConfirmPassword(e.target.value)
+  })), error && /*#__PURE__*/React.createElement("p", {
+    className: "text-xs text-red-600 mb-3"
+  }, error), /*#__PURE__*/React.createElement("div", {
+    className: "flex gap-2 justify-end mt-2"
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: onClose,
+    className: "px-4 py-2 rounded-lg text-sm font-semibold",
+    style: {
+      color: C.slate
+    }
+  }, "إلغاء"), /*#__PURE__*/React.createElement("button", {
+    onClick: handleSave,
+    disabled: busy,
+    className: "px-4 py-2 rounded-lg text-sm font-bold text-white disabled:opacity-60",
+    style: {
+      background: C.navy950
+    }
+  }, busy ? "جارِ الحفظ..." : "حفظ")));
+}
+
+/* ============================================================
    الشريط الجانبي والتنقل
    ============================================================ */
 const NAV_ITEMS = [{
@@ -743,7 +1077,7 @@ const NAV_ITEMS = [{
   icon: Landmark
 }, {
   id: "team",
-  label: "الفئات الوظيفية",
+  label: "الموظفون",
   icon: Users
 }];
 function Sidebar({
@@ -751,7 +1085,10 @@ function Sidebar({
   setView,
   onReset,
   mobileOpen,
-  setMobileOpen
+  setMobileOpen,
+  employee,
+  onLogout,
+  onChangePassword
 }) {
   return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("aside", {
     className: "hidden md:flex md:flex-col w-64 shrink-0 h-screen sticky top-0",
@@ -785,10 +1122,42 @@ function Sidebar({
       size: 17
     }), item.label);
   })), /*#__PURE__*/React.createElement("div", {
-    className: "px-3 pb-5 pt-2"
+    className: "px-3 pb-5 pt-3",
+    style: {
+      borderTop: "1px solid rgba(255,255,255,0.08)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "px-1 mb-2 mt-3"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-xs font-bold text-white truncate flex items-center gap-1.5"
+  }, employee.fullName, employee.isAdmin && /*#__PURE__*/React.createElement(Badge, {
+    tone: "gold"
+  }, "مشرف")), /*#__PURE__*/React.createElement("div", {
+    className: "text-[11px] truncate",
+    style: {
+      color: "#D9C6C4"
+    }
+  }, employee.jobTitle)), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-2.5 px-1 mb-3 text-[11px] font-semibold"
   }, /*#__PURE__*/React.createElement("button", {
+    onClick: onChangePassword,
+    style: {
+      color: "#D9C6C4"
+    },
+    className: "hover:text-white transition-colors"
+  }, "تغيير رمز الدخول"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "#5A4544"
+    }
+  }, "·"), /*#__PURE__*/React.createElement("button", {
+    onClick: onLogout,
+    style: {
+      color: "#D9C6C4"
+    },
+    className: "hover:text-white transition-colors"
+  }, "تسجيل الخروج")), /*#__PURE__*/React.createElement("button", {
     onClick: onReset,
-    className: "w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-colors",
+    className: "w-full flex items-center gap-2 px-2 py-2 rounded-lg text-xs font-semibold transition-colors",
     style: {
       color: "#A89592"
     }
@@ -812,10 +1181,12 @@ function Sidebar({
   }, /*#__PURE__*/React.createElement(Menu, {
     size: 20
   }))), mobileOpen && /*#__PURE__*/React.createElement("div", {
-    className: "md:hidden sticky top-[57px] z-30 px-2 py-2 flex flex-wrap gap-1.5",
+    className: "md:hidden sticky top-[57px] z-30 px-3 py-2.5",
     style: {
       background: C.navy800
     }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex flex-wrap gap-1.5 mb-2.5"
   }, NAV_ITEMS.map(item => {
     const Icon = item.icon;
     const active = view === item.id;
@@ -833,7 +1204,35 @@ function Sidebar({
     }, /*#__PURE__*/React.createElement(Icon, {
       size: 13
     }), item.label);
-  })));
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center justify-between pt-2.5",
+    style: {
+      borderTop: "1px solid rgba(255,255,255,0.1)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "min-w-0"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-xs font-bold text-white truncate flex items-center gap-1.5"
+  }, employee.fullName, employee.isAdmin && /*#__PURE__*/React.createElement(Badge, {
+    tone: "gold"
+  }, "مشرف")), /*#__PURE__*/React.createElement("div", {
+    className: "text-[10px] truncate",
+    style: {
+      color: "#D9C6C4"
+    }
+  }, employee.jobTitle)), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-2.5 text-[11px] font-semibold shrink-0"
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: onChangePassword,
+    style: {
+      color: "#D9C6C4"
+    }
+  }, "الرمز"), /*#__PURE__*/React.createElement("button", {
+    onClick: onLogout,
+    style: {
+      color: "#D9C6C4"
+    }
+  }, "خروج")))));
 }
 
 /* ============================================================
@@ -1064,13 +1463,15 @@ function TopicCard({
 }
 function TopicFormModal({
   initial,
+  employees,
+  defaultResponsible,
   onSave,
   onClose
 }) {
   const [title, setTitle] = useState(initial ? initial.title : "");
   const [committeeId, setCommitteeId] = useState(initial ? initial.committeeId : COMMITTEES[0].id);
   const [customCommittee, setCustomCommittee] = useState(initial ? initial.customCommittee || "" : "");
-  const [responsibleRole, setResponsibleRole] = useState(initial ? initial.responsibleRole : ALL_ROLES[0]);
+  const [responsibleRole, setResponsibleRole] = useState(initial ? initial.responsibleRole : defaultResponsible);
   const [status, setStatus] = useState(initial ? initial.status : "نشط");
   const [description, setDescription] = useState(initial ? initial.description : "");
   const [error, setError] = useState("");
@@ -1122,16 +1523,16 @@ function TopicFormModal({
     onChange: e => setCustomCommittee(e.target.value),
     placeholder: "حدد الاسم"
   })), /*#__PURE__*/React.createElement(Field, {
-    label: "الجهة/الفئة المسؤولة"
+    label: "الموظف المسؤول"
   }, /*#__PURE__*/React.createElement("select", {
     className: inputClass,
     style: inputStyle,
     value: responsibleRole,
     onChange: e => setResponsibleRole(e.target.value)
-  }, ALL_ROLES.map(r => /*#__PURE__*/React.createElement("option", {
-    key: r,
-    value: r
-  }, r)))), initial && /*#__PURE__*/React.createElement(Field, {
+  }, employees.map(e => /*#__PURE__*/React.createElement("option", {
+    key: e.id,
+    value: e.fullName
+  }, e.fullName, " — ", e.jobTitle)))), initial && /*#__PURE__*/React.createElement(Field, {
     label: "الحالة"
   }, /*#__PURE__*/React.createElement("select", {
     className: inputClass,
@@ -1293,6 +1694,8 @@ function TopicDetailModal({
 }
 function TopicsView({
   data,
+  employees,
+  currentEmployeeName,
   onAddTopic,
   onUpdateTopic,
   onAddMovement,
@@ -1376,6 +1779,8 @@ function TopicsView({
     onOpen: () => setDetailId(t.id)
   }))), formOpen && /*#__PURE__*/React.createElement(TopicFormModal, {
     initial: editingTopic,
+    employees: employees,
+    defaultResponsible: currentEmployeeName,
     onClose: () => setFormOpen(false),
     onSave: payload => {
       if (editingTopic) onUpdateTopic(editingTopic.id, payload);else onAddTopic(payload);
@@ -1398,6 +1803,8 @@ function TopicsView({
   }), movementFormOpen && /*#__PURE__*/React.createElement(MovementFormModal, {
     topics: data.topics,
     presetTopicId: presetTopicForMovement,
+    employees: employees,
+    defaultResponsible: currentEmployeeName,
     onClose: () => {
       setMovementFormOpen(false);
       setPresetTopicForMovement(null);
@@ -1416,6 +1823,8 @@ function TopicsView({
 function MovementFormModal({
   topics,
   presetTopicId,
+  employees,
+  defaultResponsible,
   onClose,
   onSave
 }) {
@@ -1425,7 +1834,7 @@ function MovementFormModal({
   const [entity, setEntity] = useState("");
   const [referenceNumber, setReferenceNumber] = useState("");
   const [date, setDate] = useState(todayInput());
-  const [responsibleRole, setResponsibleRole] = useState(ALL_ROLES[0]);
+  const [responsibleRole, setResponsibleRole] = useState(defaultResponsible);
   const [status, setStatus] = useState("قيد الإجراء");
   const [notes, setNotes] = useState("");
   const [error, setError] = useState("");
@@ -1534,16 +1943,16 @@ function MovementFormModal({
     key: s,
     value: s
   }, s))))), /*#__PURE__*/React.createElement(Field, {
-    label: "الجهة/الفئة المسؤولة"
+    label: "الموظف المسؤول"
   }, /*#__PURE__*/React.createElement("select", {
     className: inputClass,
     style: inputStyle,
     value: responsibleRole,
     onChange: e => setResponsibleRole(e.target.value)
-  }, ALL_ROLES.map(r => /*#__PURE__*/React.createElement("option", {
-    key: r,
-    value: r
-  }, r)))), /*#__PURE__*/React.createElement(Field, {
+  }, employees.map(emp => /*#__PURE__*/React.createElement("option", {
+    key: emp.id,
+    value: emp.fullName
+  }, emp.fullName, " — ", emp.jobTitle)))), /*#__PURE__*/React.createElement(Field, {
     label: "ملاحظات"
   }, /*#__PURE__*/React.createElement("textarea", {
     className: inputClass,
@@ -1583,6 +1992,8 @@ const emptyFilters = {
 };
 function MovementsView({
   data,
+  employees,
+  currentEmployeeName,
   onAddMovement,
   onDeleteMovement
 }) {
@@ -1752,6 +2163,8 @@ function MovementsView({
   })), formOpen && /*#__PURE__*/React.createElement(MovementFormModal, {
     topics: data.topics,
     presetTopicId: null,
+    employees: employees,
+    defaultResponsible: currentEmployeeName,
     onClose: () => setFormOpen(false),
     onSave: payload => {
       onAddMovement(payload);
@@ -1865,14 +2278,26 @@ function CommitteesView({
 /* ============================================================
    الفئات الوظيفية
    ============================================================ */
-function TeamView() {
+const EMPLOYEE_SECTIONS = ["القيادة", "الشؤون المالية", "المجالس واللجان", "قسم الدراسات", "قسم التنسيق والمتابعة", "أخرى"];
+function TeamView({
+  employees,
+  currentEmployee,
+  onPromote,
+  onResetPassword
+}) {
+  const isAdmin = currentEmployee && currentEmployee.isAdmin;
+  const [confirmResetId, setConfirmResetId] = useState(null);
+  const grouped = EMPLOYEE_SECTIONS.map(s => ({
+    section: s,
+    list: employees.filter(e => sectionForTitle(e.jobTitle) === s)
+  })).filter(g => g.list.length > 0);
   return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(PageHeader, {
-    title: "الفئات الوظيفية",
-    subtitle: "هيكل موظفي الدائرة حسب أقسام العمل"
+    title: "الموظفون",
+    subtitle: isAdmin ? "موظفو الدائرة — بصلاحية المشرف يمكنك إدارة الحسابات" : "موظفو الدائرة حسب أقسام العمل"
   }), /*#__PURE__*/React.createElement("div", {
     className: "space-y-5"
-  }, ROLE_GROUPS.map(g => /*#__PURE__*/React.createElement("div", {
-    key: g.group,
+  }, grouped.map(g => /*#__PURE__*/React.createElement("div", {
+    key: g.section,
     className: "bg-white rounded-xl p-4 shadow-sm"
   }, /*#__PURE__*/React.createElement("h3", {
     className: "font-bold text-sm mb-3 flex items-center gap-2",
@@ -1884,14 +2309,16 @@ function TeamView() {
     style: {
       background: C.gold500
     }
-  }), g.group), /*#__PURE__*/React.createElement("div", {
-    className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5"
-  }, g.roles.map(r => /*#__PURE__*/React.createElement("div", {
-    key: r,
-    className: "flex items-center gap-2.5 rounded-lg p-2.5",
+  }), g.section), /*#__PURE__*/React.createElement("div", {
+    className: "space-y-2"
+  }, g.list.map(emp => /*#__PURE__*/React.createElement("div", {
+    key: emp.id,
+    className: "flex items-center justify-between gap-3 flex-wrap rounded-lg p-2.5",
     style: {
       background: C.paper
     }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-2.5 min-w-0"
   }, /*#__PURE__*/React.createElement("div", {
     className: "rounded-full p-1.5 shrink-0",
     style: {
@@ -1900,27 +2327,60 @@ function TeamView() {
   }, /*#__PURE__*/React.createElement(Users, {
     size: 13,
     color: C.navy700
-  })), /*#__PURE__*/React.createElement("span", {
-    className: "text-xs font-semibold",
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "min-w-0"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-xs font-semibold truncate flex items-center gap-1.5",
     style: {
       color: C.ink
     }
-  }, r))))))));
+  }, emp.fullName, emp.isAdmin && /*#__PURE__*/React.createElement(Badge, {
+    tone: "gold"
+  }, "مشرف")), /*#__PURE__*/React.createElement("div", {
+    className: "text-[11px]",
+    style: {
+      color: C.slate
+    }
+  }, emp.jobTitle, " · ", emp.employeeNumber))), isAdmin && (confirmResetId === emp.id ? /*#__PURE__*/React.createElement(ConfirmInline, {
+    label: "إعادة الرمز إلى 1234؟",
+    onConfirm: () => {
+      onResetPassword(emp.employeeNumber);
+      setConfirmResetId(null);
+    },
+    onCancel: () => setConfirmResetId(null)
+  }) : /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-3 shrink-0"
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setConfirmResetId(emp.id),
+    className: "text-[11px] font-semibold hover:underline",
+    style: {
+      color: C.navy700
+    }
+  }, "إعادة تعيين الرمز"), emp.id !== currentEmployee.id && /*#__PURE__*/React.createElement("button", {
+    onClick: () => onPromote(emp.employeeNumber, !emp.isAdmin),
+    className: "text-[11px] font-semibold hover:underline",
+    style: {
+      color: emp.isAdmin ? "#A9682B" : C.navy700
+    }
+  }, emp.isAdmin ? "إلغاء صلاحية المشرف" : "منح صلاحية مشرف"))))))))));
 }
 
 /* ============================================================
    التطبيق الرئيسي
    ============================================================ */
 function App() {
+  const [employee, setEmployee] = useState(null);
+  const [employees, setEmployees] = useState([]);
   const [view, setView] = useState("dashboard");
   const [data, setData] = useState({
     topics: [],
     movements: []
   });
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const [notice, setNotice] = useState(null);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   function flash(type, message) {
     setNotice({
       type: type,
@@ -1931,7 +2391,11 @@ function App() {
   async function refresh() {
     try {
       const fresh = await fetchAllData();
-      setData(fresh);
+      setData({
+        topics: fresh.topics,
+        movements: fresh.movements
+      });
+      setEmployees(fresh.employees);
       setLoadError(false);
     } catch (e) {
       console.error(e);
@@ -1941,6 +2405,8 @@ function App() {
     }
   }
   useEffect(() => {
+    if (!employee) return;
+    setLoading(true);
     refresh();
     const interval = setInterval(refresh, 20000);
     function onFocus() {
@@ -1951,7 +2417,40 @@ function App() {
       clearInterval(interval);
       window.removeEventListener("focus", onFocus);
     };
-  }, []);
+  }, [employee]);
+  async function handleLogin(employeeNumber, password) {
+    const emp = await authLogin(employeeNumber, password);
+    setEmployee(emp);
+  }
+  function handleLogout() {
+    authLogout();
+    setEmployee(null);
+    setData({
+      topics: [],
+      movements: []
+    });
+    setEmployees([]);
+    setView("dashboard");
+  }
+  async function handlePromote(employeeNumber, makeAdmin) {
+    try {
+      await rpcSetAdmin(employeeNumber, makeAdmin);
+      await refresh();
+      flash("success", makeAdmin ? "تم منح صلاحية المشرف." : "تم إلغاء صلاحية المشرف.");
+    } catch (e) {
+      console.error(e);
+      flash("error", "تعذّر تنفيذ العملية.");
+    }
+  }
+  async function handleResetPassword(employeeNumber) {
+    try {
+      await rpcResetPassword(employeeNumber);
+      flash("success", "تمت إعادة تعيين رمز الدخول إلى 1234.");
+    } catch (e) {
+      console.error(e);
+      flash("error", "تعذّر تنفيذ العملية.");
+    }
+  }
   async function addTopic(payload) {
     try {
       const t = await insertTopic(payload);
@@ -1999,6 +2498,11 @@ function App() {
       console.error(e);
       flash("error", "تعذّر حذف الحركة.");
     }
+  }
+  if (!employee) {
+    return /*#__PURE__*/React.createElement(LoginScreen, {
+      onLogin: handleLogin
+    });
   }
   if (loading) {
     return /*#__PURE__*/React.createElement("div", {
@@ -2067,7 +2571,10 @@ function App() {
     setView: setView,
     onReset: refresh,
     mobileOpen: mobileNavOpen,
-    setMobileOpen: setMobileNavOpen
+    setMobileOpen: setMobileNavOpen,
+    employee: employee,
+    onLogout: handleLogout,
+    onChangePassword: () => setChangePasswordOpen(true)
   }), /*#__PURE__*/React.createElement("main", {
     className: "flex-1 min-w-0 p-4 md:p-8"
   }, notice && /*#__PURE__*/React.createElement("div", {
@@ -2080,19 +2587,35 @@ function App() {
     data: data
   }), view === "topics" && /*#__PURE__*/React.createElement(TopicsView, {
     data: data,
+    employees: employees,
+    currentEmployeeName: employee.fullName,
     onAddTopic: addTopic,
     onUpdateTopic: updateTopic,
     onAddMovement: addMovement,
     onDeleteMovement: deleteMovement
   }), view === "movements" && /*#__PURE__*/React.createElement(MovementsView, {
     data: data,
+    employees: employees,
+    currentEmployeeName: employee.fullName,
     onAddMovement: addMovement,
     onDeleteMovement: deleteMovement
   }), view === "entities" && /*#__PURE__*/React.createElement(EntitiesView, {
     data: data
   }), view === "committees" && /*#__PURE__*/React.createElement(CommitteesView, {
     data: data
-  }), view === "team" && /*#__PURE__*/React.createElement(TeamView, null)));
+  }), view === "team" && /*#__PURE__*/React.createElement(TeamView, {
+    employees: employees,
+    currentEmployee: employee,
+    onPromote: handlePromote,
+    onResetPassword: handleResetPassword
+  })), changePasswordOpen && /*#__PURE__*/React.createElement(ChangePasswordModal, {
+    employeeNumber: employee.employeeNumber,
+    onClose: () => setChangePasswordOpen(false),
+    onChanged: () => {
+      setChangePasswordOpen(false);
+      flash("success", "تم تغيير رمز الدخول بنجاح.");
+    }
+  }));
 }
 ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
 </script>
