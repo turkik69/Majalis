@@ -310,6 +310,10 @@ const CheckCircle2 = createIcon([["circle", {
   d: "m9 12 2 2 4-4",
   key: "dzmm74"
 }]]);
+const Paperclip = createIcon([["path", {
+  d: "m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48",
+  key: "1u3ebp"
+}]]);
 
 /* ============================================================
    الهوية البصرية — Design tokens
@@ -499,7 +503,8 @@ const TOPIC_FIELDS = {
   customCommittee: "custom_committee",
   responsibleRole: "responsible_role",
   status: "status",
-  description: "description"
+  description: "description",
+  attachments: "attachments"
 };
 const MOVEMENT_FIELDS = {
   topicId: "topic_id",
@@ -528,6 +533,7 @@ function topicFromRow(row) {
     responsibleRole: row.responsible_role,
     status: row.status,
     description: row.description || "",
+    attachments: row.attachments || [],
     createdAt: row.created_at
   };
 }
@@ -698,6 +704,57 @@ async function rpcResetPassword(employeeNumber) {
       p_employee_number: employeeNumber
     })
   });
+}
+
+/* ============================================================
+   مرفقات المواضيع (PDF / Word / Excel)
+   ============================================================ */
+const ATTACHMENTS_BUCKET = "topic-attachments";
+const ALLOWED_ATTACHMENT_EXT = [".pdf", ".doc", ".docx", ".xls", ".xlsx"];
+const MAX_ATTACHMENT_SIZE = 15 * 1024 * 1024;
+function humanFileSize(bytes) {
+  if (!bytes) return "٠ KB";
+  const kb = bytes / 1024;
+  if (kb < 1024) return Math.round(kb) + " KB";
+  return (kb / 1024).toFixed(1) + " MB";
+}
+async function uploadAttachment(file, pathPrefix) {
+  const token = getAccessToken() || SUPABASE_KEY;
+  const safeName = file.name.replace(/[^\w.\-\u0600-\u06FF ]/g, "_");
+  const path = pathPrefix + "/" + Date.now() + "-" + safeName;
+  const res = await fetch(SUPABASE_URL + "/storage/v1/object/" + ATTACHMENTS_BUCKET + "/" + encodeURIComponent(path), {
+    method: "POST",
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: "Bearer " + token,
+      "Content-Type": file.type || "application/octet-stream"
+    },
+    body: file
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error("upload failed " + res.status + ": " + text);
+  }
+  return {
+    name: file.name,
+    path: path,
+    size: file.size,
+    type: file.type,
+    uploadedAt: new Date().toISOString()
+  };
+}
+async function deleteAttachment(path) {
+  const token = getAccessToken() || SUPABASE_KEY;
+  await fetch(SUPABASE_URL + "/storage/v1/object/" + ATTACHMENTS_BUCKET + "/" + encodeURIComponent(path), {
+    method: "DELETE",
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: "Bearer " + token
+    }
+  });
+}
+function attachmentUrl(path) {
+  return SUPABASE_URL + "/storage/v1/object/public/" + ATTACHMENTS_BUCKET + "/" + path;
 }
 
 /* ============================================================
@@ -1457,9 +1514,17 @@ function TopicCard({
     style: {
       color: C.slate
     }
-  }, /*#__PURE__*/React.createElement("span", null, topic.responsibleRole), /*#__PURE__*/React.createElement("span", {
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "truncate"
+  }, topic.responsibleRole), /*#__PURE__*/React.createElement("span", {
+    className: "flex items-center gap-2 shrink-0 mr-2"
+  }, topic.attachments && topic.attachments.length > 0 && /*#__PURE__*/React.createElement("span", {
+    className: "flex items-center gap-0.5"
+  }, /*#__PURE__*/React.createElement(Paperclip, {
+    size: 11
+  }), " ", topic.attachments.length), /*#__PURE__*/React.createElement("span", {
     className: "font-semibold"
-  }, movementCount, " حركة")));
+  }, movementCount, " حركة"))));
 }
 function TopicFormModal({
   initial,
@@ -1474,6 +1539,10 @@ function TopicFormModal({
   const [responsibleRole, setResponsibleRole] = useState(initial ? initial.responsibleRole : defaultResponsible);
   const [status, setStatus] = useState(initial ? initial.status : "نشط");
   const [description, setDescription] = useState(initial ? initial.description : "");
+  const [attachments, setAttachments] = useState(initial && initial.attachments ? initial.attachments : []);
+  const [uploadingCount, setUploadingCount] = useState(0);
+  const [attachError, setAttachError] = useState("");
+  const [uploadPrefix] = useState(() => initial ? initial.id : uid());
   const [error, setError] = useState("");
   function handleSave() {
     if (!title.trim()) {
@@ -1490,8 +1559,41 @@ function TopicFormModal({
       customCommittee: committeeId === "other" ? customCommittee.trim() : "",
       responsibleRole,
       status,
-      description: description.trim()
+      description: description.trim(),
+      attachments
     });
+  }
+  async function handleFilesSelected(e) {
+    const files = Array.from(e.target.files || []);
+    e.target.value = "";
+    setAttachError("");
+    for (const file of files) {
+      const parts = file.name.split(".");
+      const ext = "." + (parts.length > 1 ? parts.pop().toLowerCase() : "");
+      if (!ALLOWED_ATTACHMENT_EXT.includes(ext)) {
+        setAttachError("نوع غير مدعوم: " + file.name + " (المسموح: PDF، Word، Excel)");
+        continue;
+      }
+      if (file.size > MAX_ATTACHMENT_SIZE) {
+        setAttachError("حجم كبير جدًا: " + file.name + " (الحد الأقصى 15 ميجابايت)");
+        continue;
+      }
+      setUploadingCount(c => c + 1);
+      try {
+        const meta = await uploadAttachment(file, uploadPrefix);
+        setAttachments(prev => [...prev, meta]);
+      } catch (err) {
+        console.error(err);
+        setAttachError("تعذّر رفع الملف: " + file.name);
+      } finally {
+        setUploadingCount(c => c - 1);
+      }
+    }
+  }
+  function handleRemoveAttachment(index) {
+    const a = attachments[index];
+    setAttachments(prev => prev.filter((_, i) => i !== index));
+    deleteAttachment(a.path).catch(err => console.error(err));
   }
   return /*#__PURE__*/React.createElement(Modal, {
     title: initial ? "تعديل الموضوع" : "موضوع جديد",
@@ -1551,7 +1653,59 @@ function TopicFormModal({
     value: description,
     onChange: e => setDescription(e.target.value),
     placeholder: "وصف مختصر للموضوع"
-  })), error && /*#__PURE__*/React.createElement("p", {
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "المرفقات (PDF، Word، Excel)"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "space-y-2"
+  }, attachments.map((a, i) => /*#__PURE__*/React.createElement("div", {
+    key: a.path,
+    className: "flex items-center justify-between gap-2 rounded-lg border px-3 py-2",
+    style: {
+      borderColor: "#D8D2C0"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-2 min-w-0"
+  }, /*#__PURE__*/React.createElement(Paperclip, {
+    size: 13,
+    color: C.navy700,
+    className: "shrink-0"
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "min-w-0"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-xs font-semibold truncate",
+    style: {
+      color: C.ink
+    }
+  }, a.name), /*#__PURE__*/React.createElement("div", {
+    className: "text-[10px]",
+    style: {
+      color: C.slate
+    }
+  }, humanFileSize(a.size)))), /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    onClick: () => handleRemoveAttachment(i),
+    className: "text-gray-400 hover:text-red-500 transition-colors shrink-0",
+    "aria-label": "إزالة"
+  }, /*#__PURE__*/React.createElement(X, {
+    size: 14
+  })))), /*#__PURE__*/React.createElement("label", {
+    className: "flex items-center justify-center gap-2 rounded-lg border-2 border-dashed py-2.5 text-xs font-semibold cursor-pointer transition-colors",
+    style: {
+      borderColor: "#D8D2C0",
+      color: C.navy700
+    }
+  }, /*#__PURE__*/React.createElement(Plus, {
+    size: 14
+  }), uploadingCount > 0 ? "جارِ الرفع..." : "إرفاق ملف", /*#__PURE__*/React.createElement("input", {
+    type: "file",
+    multiple: true,
+    accept: ".pdf,.doc,.docx,.xls,.xlsx",
+    className: "hidden",
+    onChange: handleFilesSelected,
+    disabled: uploadingCount > 0
+  })), attachError && /*#__PURE__*/React.createElement("p", {
+    className: "text-xs text-red-600"
+  }, attachError))), error && /*#__PURE__*/React.createElement("p", {
     className: "text-xs text-red-600 mb-3"
   }, error), /*#__PURE__*/React.createElement("div", {
     className: "flex gap-2 justify-end mt-2"
@@ -1563,7 +1717,8 @@ function TopicFormModal({
     }
   }, "إلغاء"), /*#__PURE__*/React.createElement("button", {
     onClick: handleSave,
-    className: "px-4 py-2 rounded-lg text-sm font-bold text-white",
+    disabled: uploadingCount > 0,
+    className: "px-4 py-2 rounded-lg text-sm font-bold text-white disabled:opacity-60",
     style: {
       background: C.navy950
     }
@@ -1609,7 +1764,26 @@ function TopicDetailModal({
     }
   }, "الجهة المسؤولة: ", /*#__PURE__*/React.createElement("span", {
     className: "font-semibold"
-  }, topic.responsibleRole), " · أُنشئ في ", fmtDate(topic.createdAt))), /*#__PURE__*/React.createElement("button", {
+  }, topic.responsibleRole), " · أُنشئ في ", fmtDate(topic.createdAt)), topic.attachments && topic.attachments.length > 0 && /*#__PURE__*/React.createElement("div", {
+    className: "mt-3 flex flex-wrap gap-2"
+  }, topic.attachments.map(a => /*#__PURE__*/React.createElement("a", {
+    key: a.path,
+    href: attachmentUrl(a.path),
+    target: "_blank",
+    rel: "noreferrer",
+    className: "flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold hover:bg-gray-50 transition-colors",
+    style: {
+      borderColor: "#D8D2C0",
+      color: C.navy700
+    }
+  }, /*#__PURE__*/React.createElement(Paperclip, {
+    size: 12
+  }), a.name, /*#__PURE__*/React.createElement("span", {
+    className: "font-normal",
+    style: {
+      color: C.slate
+    }
+  }, "(", humanFileSize(a.size), ")"))))), /*#__PURE__*/React.createElement("button", {
     onClick: onEdit,
     className: "flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0",
     style: {
