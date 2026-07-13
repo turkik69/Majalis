@@ -1,30 +1,336 @@
-import React, { useState, useEffect, useMemo } from "react";
-import {
-  LayoutDashboard, FileText, Building2, Users, Plus, X, Search,
-  Clock, CheckCircle2, RotateCcw, Filter, Landmark, Trash2,
-  Inbox, Send, ClipboardList, Pencil, Menu
-} from "lucide-react";
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, Cell
-} from "recharts";
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>دائرة المجالس واللجان — ديوان البلاط السلطاني</title>
+<meta name="description" content="نظام إدارة أعمال دائرة المجالس واللجان بمكتب وزير ديوان البلاط السلطاني" />
+<meta name="theme-color" content="#A12024" />
+
+<link rel="icon" type="image/png" href="data:image/png;base64,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" />
+<link rel="apple-touch-icon" href="data:image/png;base64,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" />
+<link rel="manifest" href="manifest.json" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+<script src="https://cdn.tailwindcss.com"></script>
+
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+</head>
+<body>
+<div id="root"></div>
+<script>
+const {
+  useState,
+  useEffect,
+  useMemo
+} = React;
+
+/* أيقونات SVG محلية (مصدرها مكتبة lucide) — بدون الاعتماد على حزمة خارجية */
+function createIcon(shape) {
+  return function LucideIcon({
+    size = 24,
+    color = "currentColor",
+    strokeWidth = 2,
+    className,
+    style
+  }) {
+    return React.createElement("svg", {
+      width: size,
+      height: size,
+      viewBox: "0 0 24 24",
+      fill: "none",
+      stroke: color,
+      strokeWidth,
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      className,
+      style
+    }, shape.map(function (item, i) {
+      return React.createElement(item[0], Object.assign({}, item[1], {
+        key: i
+      }));
+    }));
+  };
+}
+const LayoutDashboard = createIcon([["rect", {
+  width: "7",
+  height: "9",
+  x: "3",
+  y: "3",
+  rx: "1",
+  key: "10lvy0"
+}], ["rect", {
+  width: "7",
+  height: "5",
+  x: "14",
+  y: "3",
+  rx: "1",
+  key: "16une8"
+}], ["rect", {
+  width: "7",
+  height: "9",
+  x: "14",
+  y: "12",
+  rx: "1",
+  key: "1hutg5"
+}], ["rect", {
+  width: "7",
+  height: "5",
+  x: "3",
+  y: "16",
+  rx: "1",
+  key: "ldoo1y"
+}]]);
+const FileText = createIcon([["path", {
+  d: "M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z",
+  key: "1rqfz7"
+}], ["path", {
+  d: "M14 2v4a2 2 0 0 0 2 2h4",
+  key: "tnqrlb"
+}], ["path", {
+  d: "M10 9H8",
+  key: "b1mrlr"
+}], ["path", {
+  d: "M16 13H8",
+  key: "t4e002"
+}], ["path", {
+  d: "M16 17H8",
+  key: "z1uh3a"
+}]]);
+const Building2 = createIcon([["path", {
+  d: "M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z",
+  key: "1b4qmf"
+}], ["path", {
+  d: "M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2",
+  key: "i71pzd"
+}], ["path", {
+  d: "M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2",
+  key: "10jefs"
+}], ["path", {
+  d: "M10 6h4",
+  key: "1itunk"
+}], ["path", {
+  d: "M10 10h4",
+  key: "tcdvrf"
+}], ["path", {
+  d: "M10 14h4",
+  key: "kelpxr"
+}], ["path", {
+  d: "M10 18h4",
+  key: "1ulq68"
+}]]);
+const Users = createIcon([["path", {
+  d: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2",
+  key: "1yyitq"
+}], ["circle", {
+  cx: "9",
+  cy: "7",
+  r: "4",
+  key: "nufk8"
+}], ["path", {
+  d: "M22 21v-2a4 4 0 0 0-3-3.87",
+  key: "kshegd"
+}], ["path", {
+  d: "M16 3.13a4 4 0 0 1 0 7.75",
+  key: "1da9ce"
+}]]);
+const Plus = createIcon([["path", {
+  d: "M5 12h14",
+  key: "1ays0h"
+}], ["path", {
+  d: "M12 5v14",
+  key: "s699le"
+}]]);
+const X = createIcon([["path", {
+  d: "M18 6 6 18",
+  key: "1bl5f8"
+}], ["path", {
+  d: "m6 6 12 12",
+  key: "d8bk6v"
+}]]);
+const Search = createIcon([["circle", {
+  cx: "11",
+  cy: "11",
+  r: "8",
+  key: "4ej97u"
+}], ["path", {
+  d: "m21 21-4.3-4.3",
+  key: "1qie3q"
+}]]);
+const Clock = createIcon([["circle", {
+  cx: "12",
+  cy: "12",
+  r: "10",
+  key: "1mglay"
+}], ["polyline", {
+  points: "12 6 12 12 16 14",
+  key: "68esgv"
+}]]);
+const RotateCcw = createIcon([["path", {
+  d: "M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8",
+  key: "1357e3"
+}], ["path", {
+  d: "M3 3v5h5",
+  key: "1xhq8a"
+}]]);
+const Filter = createIcon([["polygon", {
+  points: "22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3",
+  key: "1yg77f"
+}]]);
+const Landmark = createIcon([["line", {
+  x1: "3",
+  x2: "21",
+  y1: "22",
+  y2: "22",
+  key: "j8o0r"
+}], ["line", {
+  x1: "6",
+  x2: "6",
+  y1: "18",
+  y2: "11",
+  key: "10tf0k"
+}], ["line", {
+  x1: "10",
+  x2: "10",
+  y1: "18",
+  y2: "11",
+  key: "54lgf6"
+}], ["line", {
+  x1: "14",
+  x2: "14",
+  y1: "18",
+  y2: "11",
+  key: "380y"
+}], ["line", {
+  x1: "18",
+  x2: "18",
+  y1: "18",
+  y2: "11",
+  key: "1kevvc"
+}], ["polygon", {
+  points: "12 2 20 7 4 7",
+  key: "jkujk7"
+}]]);
+const Trash2 = createIcon([["path", {
+  d: "M3 6h18",
+  key: "d0wm0j"
+}], ["path", {
+  d: "M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6",
+  key: "4alrt4"
+}], ["path", {
+  d: "M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2",
+  key: "v07s0e"
+}], ["line", {
+  x1: "10",
+  x2: "10",
+  y1: "11",
+  y2: "17",
+  key: "1uufr5"
+}], ["line", {
+  x1: "14",
+  x2: "14",
+  y1: "11",
+  y2: "17",
+  key: "xtxkd"
+}]]);
+const Inbox = createIcon([["polyline", {
+  points: "22 12 16 12 14 15 10 15 8 12 2 12",
+  key: "o97t9d"
+}], ["path", {
+  d: "M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z",
+  key: "oot6mr"
+}]]);
+const Send = createIcon([["path", {
+  d: "m22 2-7 20-4-9-9-4Z",
+  key: "1q3vgg"
+}], ["path", {
+  d: "M22 2 11 13",
+  key: "nzbqef"
+}]]);
+const ClipboardList = createIcon([["rect", {
+  width: "8",
+  height: "4",
+  x: "8",
+  y: "2",
+  rx: "1",
+  ry: "1",
+  key: "tgr4d6"
+}], ["path", {
+  d: "M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2",
+  key: "116196"
+}], ["path", {
+  d: "M12 11h4",
+  key: "1jrz19"
+}], ["path", {
+  d: "M12 16h4",
+  key: "n85exb"
+}], ["path", {
+  d: "M8 11h.01",
+  key: "1dfujw"
+}], ["path", {
+  d: "M8 16h.01",
+  key: "18s6g9"
+}]]);
+const Pencil = createIcon([["path", {
+  d: "M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z",
+  key: "5qss01"
+}], ["path", {
+  d: "m15 5 4 4",
+  key: "1mk7zo"
+}]]);
+const Menu = createIcon([["line", {
+  x1: "4",
+  x2: "20",
+  y1: "12",
+  y2: "12",
+  key: "1e0a9i"
+}], ["line", {
+  x1: "4",
+  x2: "20",
+  y1: "6",
+  y2: "6",
+  key: "1owob3"
+}], ["line", {
+  x1: "4",
+  x2: "20",
+  y1: "18",
+  y2: "18",
+  key: "yk5zj1"
+}]]);
+const CheckCircle2 = createIcon([["circle", {
+  cx: "12",
+  cy: "12",
+  r: "10",
+  key: "1mglay"
+}], ["path", {
+  d: "m9 12 2 2 4-4",
+  key: "dzmm74"
+}]]);
 
 /* ============================================================
    الهوية البصرية — Design tokens
    ============================================================ */
 const C = {
-  navy950: "#380A0B",   // أعمق درجة (كحلي سابقًا) — خلفية الشريط الجانبي والعناوين
-  navy800: "#591214",   // درجة غامقة — أسطح ثانوية وتسميات الحقول
-  navy700: "#7A1620",   // درجة متوسطة — أيقونات على خلفيات فاتحة
-  gold500: "#A12024",   // اللون الأحمر الأساسي المستخرج من الشعار الرسمي
+  navy950: "#380A0B",
+  // أعمق درجة (كحلي سابقًا) — خلفية الشريط الجانبي والعناوين
+  navy800: "#591214",
+  // درجة غامقة — أسطح ثانوية وتسميات الحقول
+  navy700: "#7A1620",
+  // درجة متوسطة — أيقونات على خلفيات فاتحة
+  gold500: "#A12024",
+  // اللون الأحمر الأساسي المستخرج من الشعار الرسمي
   gold600: "#7A1620",
-  gold100: "#F5E1E1",   // درجة وردية فاتحة لخلفيات الشارات
+  gold100: "#F5E1E1",
+  // درجة وردية فاتحة لخلفيات الشارات
   paper: "#FAF7F2",
   paperDark: "#EFE7DD",
   ink: "#241A1A",
-  slate: "#6B5A58",
+  slate: "#6B5A58"
 };
-
 const CHART_COLORS = ["#380A0B", "#591214", "#A12024", "#C22227", "#6B5A58"];
 
 /* الشعار الرسمي — مستخرج من صورة شعار ديوان البلاط السلطاني */
@@ -34,46 +340,48 @@ const EMBLEM_SRC = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAMAAA
 /* ============================================================
    البيانات المرجعية الثابتة
    ============================================================ */
-const COMMITTEES = [
-  { id: "tenders", name: "لجنة المناقصات", short: "المناقصات" },
-  { id: "oasis", name: "مجلس إدارة نادي الواحات", short: "نادي الواحات" },
-  { id: "sports", name: "لجنة المنشأة الرياضية", short: "المنشأة الرياضية" },
-  { id: "endowments", name: "لجنة أوقاف الجوامع السلطانية والمساجد", short: "الأوقاف والمساجد" },
-  { id: "other", name: "أخرى", short: "أخرى" },
-];
-
+const COMMITTEES = [{
+  id: "tenders",
+  name: "لجنة المناقصات",
+  short: "المناقصات"
+}, {
+  id: "oasis",
+  name: "مجلس إدارة نادي الواحات",
+  short: "نادي الواحات"
+}, {
+  id: "sports",
+  name: "لجنة المنشأة الرياضية",
+  short: "المنشأة الرياضية"
+}, {
+  id: "endowments",
+  name: "لجنة أوقاف الجوامع السلطانية والمساجد",
+  short: "الأوقاف والمساجد"
+}, {
+  id: "other",
+  name: "أخرى",
+  short: "أخرى"
+}];
 const MOVEMENT_TYPES = ["محضر اجتماع", "ملخص", "مذكرة", "تقرير", "مخاطبة"];
-
-const ENTITIES = [
-  "مكتب رئيس المكتب",
-  "دائرة الشؤون الإدارية والمالية",
-  "مركز السلطان قابوس العالي للثقافة والعلوم",
-  "المراسم السلطانية",
-  "مكتب أمين عام ديوان البلاط السلطاني",
-  "المديرية العامة للشؤون العامة",
-  "المديرية العامة للشؤون القانونية",
-  "إدارة المشتريات",
-  "المديرية العامة للشؤون المالية والإدارية والموارد البشرية",
-  "المديرية العامة للاتصالات ونظم المعلومات",
-  "المديرية العامة للدراسات والبحوث",
-  "إدارة السجلات",
-  "الإدارة الخاصة",
-  "دائرة الشؤون الفنية",
-];
-
-const ROLE_GROUPS = [
-  { group: "القيادة", roles: ["مدير الدائرة", "مساعد المدير"] },
-  { group: "الشؤون المالية", roles: ["تخصصي أول شؤون مالية"] },
-  { group: "المجالس واللجان", roles: ["تخصصي أول مجالس ولجان"] },
-  { group: "قسم الدراسات", roles: ["رئيس قسم الدراسات", "باحث دراسات", "إداري أول دراسات"] },
-  { group: "قسم التنسيق والمتابعة", roles: ["رئيس قسم التنسيق والمتابعة", "تنفيذي تنسيق ومتابعة", "كاتب أول تنسيق ومتابعة"] },
-];
-const ALL_ROLES = ROLE_GROUPS.flatMap((g) => g.roles);
-
+const ENTITIES = ["مكتب رئيس المكتب", "دائرة الشؤون الإدارية والمالية", "مركز السلطان قابوس العالي للثقافة والعلوم", "المراسم السلطانية", "مكتب أمين عام ديوان البلاط السلطاني", "المديرية العامة للشؤون العامة", "المديرية العامة للشؤون القانونية", "إدارة المشتريات", "المديرية العامة للشؤون المالية والإدارية والموارد البشرية", "المديرية العامة للاتصالات ونظم المعلومات", "المديرية العامة للدراسات والبحوث", "إدارة السجلات", "الإدارة الخاصة", "دائرة الشؤون الفنية"];
+const ROLE_GROUPS = [{
+  group: "القيادة",
+  roles: ["مدير الدائرة", "مساعد المدير"]
+}, {
+  group: "الشؤون المالية",
+  roles: ["تخصصي أول شؤون مالية"]
+}, {
+  group: "المجالس واللجان",
+  roles: ["تخصصي أول مجالس ولجان"]
+}, {
+  group: "قسم الدراسات",
+  roles: ["رئيس قسم الدراسات", "باحث دراسات", "إداري أول دراسات"]
+}, {
+  group: "قسم التنسيق والمتابعة",
+  roles: ["رئيس قسم التنسيق والمتابعة", "تنفيذي تنسيق ومتابعة", "كاتب أول تنسيق ومتابعة"]
+}];
+const ALL_ROLES = ROLE_GROUPS.flatMap(g => g.roles);
 const TOPIC_STATUSES = ["نشط", "قيد الانتظار", "مغلق"];
 const MOVEMENT_STATUSES = ["قيد الإجراء", "منجز"];
-
-const STORAGE_KEY = "majalis-lijan-v1";
 const AR_MONTHS = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"];
 
 /* ============================================================
@@ -84,11 +392,11 @@ function uid() {
 }
 function committeeName(id, custom) {
   if (id === "other" && custom) return custom;
-  const c = COMMITTEES.find((c) => c.id === id);
+  const c = COMMITTEES.find(c => c.id === id);
   return c ? c.name : "—";
 }
 function committeeShort(id) {
-  const c = COMMITTEES.find((c) => c.id === id);
+  const c = COMMITTEES.find(c => c.id === id);
   return c ? c.short : "—";
 }
 function fmtDate(iso) {
@@ -106,369 +414,659 @@ function todayInput() {
 }
 
 /* ============================================================
-   بيانات تجريبية أولية
+   Supabase — قاعدة بيانات مشتركة فعلية بين جميع المستخدمين
    ============================================================ */
-function seedData() {
-  const now = new Date();
-  const d = (offset) => {
-    const t = new Date(now);
-    t.setDate(t.getDate() - offset);
-    return t.toISOString().slice(0, 10);
+const SUPABASE_URL = "https://falypezlnmnrurinpsiw.supabase.co";
+const SUPABASE_KEY = "sb_publishable_iZaB4y72Yi97MJKevYHXtA_IcqnBWF4";
+async function sb(path, options) {
+  options = options || {};
+  const headers = Object.assign({
+    apikey: SUPABASE_KEY,
+    Authorization: "Bearer " + SUPABASE_KEY,
+    "Content-Type": "application/json"
+  }, options.headers || {});
+  const res = await fetch(SUPABASE_URL + "/rest/v1/" + path, Object.assign({}, options, {
+    headers: headers
+  }));
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error("supabase " + res.status + ": " + text);
+  }
+  if (res.status === 204) return null;
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
+}
+const TOPIC_FIELDS = {
+  title: "title",
+  committeeId: "committee_id",
+  customCommittee: "custom_committee",
+  responsibleRole: "responsible_role",
+  status: "status",
+  description: "description"
+};
+const MOVEMENT_FIELDS = {
+  topicId: "topic_id",
+  direction: "direction",
+  type: "type",
+  entity: "entity",
+  referenceNumber: "reference_number",
+  date: "date",
+  notes: "notes",
+  responsibleRole: "responsible_role",
+  status: "status"
+};
+function toRow(obj, map) {
+  const row = {};
+  Object.keys(obj).forEach(k => {
+    if (map[k] !== undefined) row[map[k]] = obj[k];
+  });
+  return row;
+}
+function topicFromRow(row) {
+  return {
+    id: row.id,
+    title: row.title,
+    committeeId: row.committee_id,
+    customCommittee: row.custom_committee || "",
+    responsibleRole: row.responsible_role,
+    status: row.status,
+    description: row.description || "",
+    createdAt: row.created_at
   };
-  const topics = [
-    { id: "t1", title: "متابعة أعمال لجنة المناقصات للربع الثالث", committeeId: "tenders", customCommittee: "", responsibleRole: "تخصصي أول مجالس ولجان", status: "نشط", description: "متابعة محاضر الاجتماعات والمخاطبات الخاصة باللجنة خلال الربع الثالث.", createdAt: d(40) },
-    { id: "t2", title: "اجتماع مجلس إدارة نادي الواحات الدوري", committeeId: "oasis", customCommittee: "", responsibleRole: "مساعد المدير", status: "نشط", description: "الاجتماع الدوري لمجلس الإدارة ومتابعة تنفيذ قراراته.", createdAt: d(25) },
-    { id: "t3", title: "تحديث ملف المنشأة الرياضية", committeeId: "sports", customCommittee: "", responsibleRole: "رئيس قسم الدراسات", status: "قيد الانتظار", description: "استكمال الدراسة الفنية الخاصة باللجنة.", createdAt: d(18) },
-    { id: "t4", title: "أعمال لجنة أوقاف الجوامع السلطانية والمساجد", committeeId: "endowments", customCommittee: "", responsibleRole: "باحث دراسات", status: "نشط", description: "متابعة التقارير الدورية للجنة.", createdAt: d(10) },
-  ];
-  const movements = [
-    { id: "m1", topicId: "t1", direction: "وارد", type: "محضر اجتماع", entity: "مكتب رئيس المكتب", referenceNumber: "2026/0341", date: d(38), notes: "محضر الاجتماع الفصلي للجنة المناقصات.", responsibleRole: "تخصصي أول مجالس ولجان", status: "منجز", createdAt: d(38) },
-    { id: "m2", topicId: "t1", direction: "صادر", type: "مخاطبة", entity: "إدارة المشتريات", referenceNumber: "2026/0355", date: d(30), notes: "مخاطبة بشأن استكمال مستندات المناقصة.", responsibleRole: "تخصصي أول مجالس ولجان", status: "منجز", createdAt: d(30) },
-    { id: "m3", topicId: "t2", direction: "وارد", type: "تقرير", entity: "المديرية العامة للدراسات والبحوث", referenceNumber: "2026/0362", date: d(20), notes: "تقرير أداء نادي الواحات للربع الثاني.", responsibleRole: "مساعد المدير", status: "منجز", createdAt: d(20) },
-    { id: "m4", topicId: "t2", direction: "صادر", type: "مذكرة", entity: "المديرية العامة للشؤون القانونية", referenceNumber: "2026/0370", date: d(14), notes: "مذكرة لاستيضاح رأي قانوني حول عقد التشغيل.", responsibleRole: "مساعد المدير", status: "قيد الإجراء", createdAt: d(14) },
-    { id: "m5", topicId: "t3", direction: "وارد", type: "ملخص", entity: "مركز السلطان قابوس العالي للثقافة والعلوم", referenceNumber: "2026/0378", date: d(9), notes: "ملخص تنسيقي حول استخدام المنشأة.", responsibleRole: "رئيس قسم الدراسات", status: "قيد الإجراء", createdAt: d(9) },
-    { id: "m6", topicId: "t4", direction: "صادر", type: "تقرير", entity: "مكتب أمين عام ديوان البلاط السلطاني", referenceNumber: "2026/0384", date: d(6), notes: "التقرير الدوري لأعمال لجنة الأوقاف.", responsibleRole: "باحث دراسات", status: "منجز", createdAt: d(6) },
-    { id: "m7", topicId: "t4", direction: "وارد", type: "مخاطبة", entity: "إدارة السجلات", referenceNumber: "2026/0390", date: d(3), notes: "طلب استكمال سجلات اللجنة.", responsibleRole: "باحث دراسات", status: "قيد الإجراء", createdAt: d(3) },
-    { id: "m8", topicId: "t1", direction: "وارد", type: "مذكرة", entity: "دائرة الشؤون الإدارية والمالية", referenceNumber: "2026/0395", date: d(1), notes: "مذكرة تنسيقية بخصوص الاعتمادات المالية.", responsibleRole: "تخصصي أول شؤون مالية", status: "قيد الإجراء", createdAt: d(1) },
-  ];
-  return { topics, movements };
+}
+function movementFromRow(row) {
+  return {
+    id: row.id,
+    topicId: row.topic_id,
+    direction: row.direction,
+    type: row.type,
+    entity: row.entity || "",
+    referenceNumber: row.reference_number || "",
+    date: row.date,
+    notes: row.notes || "",
+    responsibleRole: row.responsible_role,
+    status: row.status,
+    createdAt: row.created_at
+  };
+}
+async function fetchAllData() {
+  const [topicRows, movementRows] = await Promise.all([sb("topics?select=*&order=created_at.desc"), sb("movements?select=*&order=date.desc")]);
+  return {
+    topics: topicRows.map(topicFromRow),
+    movements: movementRows.map(movementFromRow)
+  };
+}
+async function insertTopic(payload) {
+  const rows = await sb("topics", {
+    method: "POST",
+    headers: {
+      Prefer: "return=representation"
+    },
+    body: JSON.stringify(toRow(payload, TOPIC_FIELDS))
+  });
+  return topicFromRow(rows[0]);
+}
+async function patchTopicRow(id, patch) {
+  const rows = await sb("topics?id=eq." + id, {
+    method: "PATCH",
+    headers: {
+      Prefer: "return=representation"
+    },
+    body: JSON.stringify(toRow(patch, TOPIC_FIELDS))
+  });
+  return topicFromRow(rows[0]);
+}
+async function insertMovement(payload) {
+  const rows = await sb("movements", {
+    method: "POST",
+    headers: {
+      Prefer: "return=representation"
+    },
+    body: JSON.stringify(toRow(payload, MOVEMENT_FIELDS))
+  });
+  return movementFromRow(rows[0]);
+}
+async function deleteMovementRow(id) {
+  await sb("movements?id=eq." + id, {
+    method: "DELETE"
+  });
 }
 
 /* ============================================================
    مكونات صغيرة مشتركة
    ============================================================ */
-function Seal({ size = 44 }) {
-  return (
-    <img
-      src={EMBLEM_SRC}
-      alt="شعار ديوان البلاط السلطاني"
-      className="shrink-0 object-contain"
-      style={{ width: size, height: size }}
-    />
-  );
+function Seal({
+  size = 44
+}) {
+  return /*#__PURE__*/React.createElement("img", {
+    src: EMBLEM_SRC,
+    alt: "شعار ديوان البلاط السلطاني",
+    className: "shrink-0 object-contain",
+    style: {
+      width: size,
+      height: size
+    }
+  });
 }
-
 const TONE_STYLES = {
-  navy: { background: C.navy800, color: "#fff" },
-  gold: { background: C.gold100, color: C.gold600 },
-  green: { background: "#E4F3E9", color: "#1F7A46" },
-  amber: { background: "#FBEEDC", color: "#A9682B" },
-  gray: { background: "#EDEDED", color: "#6B5A58" },
+  navy: {
+    background: C.navy800,
+    color: "#fff"
+  },
+  gold: {
+    background: C.gold100,
+    color: C.gold600
+  },
+  green: {
+    background: "#E4F3E9",
+    color: "#1F7A46"
+  },
+  amber: {
+    background: "#FBEEDC",
+    color: "#A9682B"
+  },
+  gray: {
+    background: "#EDEDED",
+    color: "#6B5A58"
+  }
 };
-function Badge({ tone = "gray", children }) {
-  return (
-    <span
-      className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap"
-      style={TONE_STYLES[tone] || TONE_STYLES.gray}
-    >
-      {children}
-    </span>
-  );
+function Badge({
+  tone = "gray",
+  children
+}) {
+  return /*#__PURE__*/React.createElement("span", {
+    className: "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap",
+    style: TONE_STYLES[tone] || TONE_STYLES.gray
+  }, children);
 }
-
-function StatCard({ icon: Icon, label, value, tone }) {
-  return (
-    <div className="bg-white rounded-xl p-4 shadow-sm border-t-2" style={{ borderColor: C.gold500 }}>
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-xs font-semibold" style={{ color: C.slate }}>{label}</span>
-        <div className="rounded-lg p-1.5" style={{ background: tone === "gold" ? C.gold100 : "#EEF2F7" }}>
-          <Icon size={16} color={tone === "gold" ? C.gold600 : C.navy700} />
-        </div>
-      </div>
-      <div className="text-2xl font-extrabold" style={{ color: C.navy950 }}>{value}</div>
-    </div>
-  );
+function StatCard({
+  icon: Icon,
+  label,
+  value,
+  tone
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    className: "bg-white rounded-xl p-4 shadow-sm border-t-2",
+    style: {
+      borderColor: C.gold500
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center justify-between mb-2"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "text-xs font-semibold",
+    style: {
+      color: C.slate
+    }
+  }, label), /*#__PURE__*/React.createElement("div", {
+    className: "rounded-lg p-1.5",
+    style: {
+      background: tone === "gold" ? C.gold100 : "#EEF2F7"
+    }
+  }, /*#__PURE__*/React.createElement(Icon, {
+    size: 16,
+    color: tone === "gold" ? C.gold600 : C.navy700
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "text-2xl font-extrabold",
+    style: {
+      color: C.navy950
+    }
+  }, value));
 }
-
-function PageHeader({ title, subtitle, action }) {
-  return (
-    <div className="flex items-start justify-between flex-wrap gap-3 mb-5">
-      <div>
-        <h1 className="text-xl font-extrabold" style={{ color: C.navy950 }}>{title}</h1>
-        {subtitle && <p className="text-sm mt-0.5" style={{ color: C.slate }}>{subtitle}</p>}
-      </div>
-      {action}
-    </div>
-  );
+function PageHeader({
+  title,
+  subtitle,
+  action
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    className: "flex items-start justify-between flex-wrap gap-3 mb-5"
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h1", {
+    className: "text-xl font-extrabold",
+    style: {
+      color: C.navy950
+    }
+  }, title), subtitle && /*#__PURE__*/React.createElement("p", {
+    className: "text-sm mt-0.5",
+    style: {
+      color: C.slate
+    }
+  }, subtitle)), action);
 }
-
-function RefBox({ children }) {
-  return (
-    <span
-      className="inline-block rounded border px-2 py-0.5 text-xs"
-      style={{ borderColor: C.gold500, color: C.navy800, fontFamily: "ui-monospace, 'Courier New', monospace" }}
-    >
-      {children}
-    </span>
-  );
+function RefBox({
+  children
+}) {
+  return /*#__PURE__*/React.createElement("span", {
+    className: "inline-block rounded border px-2 py-0.5 text-xs",
+    style: {
+      borderColor: C.gold500,
+      color: C.navy800,
+      fontFamily: "ui-monospace, 'Courier New', monospace"
+    }
+  }, children);
 }
-
-function Modal({ title, onClose, children, wide }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(11,27,51,0.55)" }}>
-      <div className={`bg-white rounded-2xl shadow-xl w-full ${wide ? "max-w-2xl" : "max-w-lg"} max-h-[90vh] overflow-y-auto`}>
-        <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: "#EAE6DA" }}>
-          <h2 className="font-bold text-base" style={{ color: C.navy950 }}>{title}</h2>
-          <button onClick={onClose} className="rounded-full p-1.5 hover:bg-gray-100 transition-colors" aria-label="إغلاق">
-            <X size={18} color={C.slate} />
-          </button>
-        </div>
-        <div className="p-5">{children}</div>
-      </div>
-    </div>
-  );
+function Modal({
+  title,
+  onClose,
+  children,
+  wide
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    className: "fixed inset-0 z-50 flex items-center justify-center p-4",
+    style: {
+      background: "rgba(11,27,51,0.55)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: `bg-white rounded-2xl shadow-xl w-full ${wide ? "max-w-2xl" : "max-w-lg"} max-h-[90vh] overflow-y-auto`
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center justify-between px-5 py-4 border-b",
+    style: {
+      borderColor: "#EAE6DA"
+    }
+  }, /*#__PURE__*/React.createElement("h2", {
+    className: "font-bold text-base",
+    style: {
+      color: C.navy950
+    }
+  }, title), /*#__PURE__*/React.createElement("button", {
+    onClick: onClose,
+    className: "rounded-full p-1.5 hover:bg-gray-100 transition-colors",
+    "aria-label": "إغلاق"
+  }, /*#__PURE__*/React.createElement(X, {
+    size: 18,
+    color: C.slate
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "p-5"
+  }, children)));
 }
-
-function Field({ label, children }) {
-  return (
-    <div className="mb-4">
-      <label className="block text-sm font-semibold mb-1.5" style={{ color: C.navy800 }}>{label}</label>
-      {children}
-    </div>
-  );
+function Field({
+  label,
+  children
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    className: "mb-4"
+  }, /*#__PURE__*/React.createElement("label", {
+    className: "block text-sm font-semibold mb-1.5",
+    style: {
+      color: C.navy800
+    }
+  }, label), children);
 }
-
-const inputClass =
-  "w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-red-400 transition-shadow";
-const inputStyle = { borderColor: "#D8D2C0", color: C.ink };
-
-function ConfirmInline({ onConfirm, onCancel, label }) {
-  return (
-    <div className="flex items-center gap-2 text-xs">
-      <span style={{ color: C.slate }}>{label || "تأكيد الحذف؟"}</span>
-      <button onClick={onConfirm} className="font-bold text-red-600 hover:underline">نعم</button>
-      <button onClick={onCancel} className="font-bold hover:underline" style={{ color: C.slate }}>تراجع</button>
-    </div>
-  );
+const inputClass = "w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-red-400 transition-shadow";
+const inputStyle = {
+  borderColor: "#D8D2C0",
+  color: C.ink
+};
+function ConfirmInline({
+  onConfirm,
+  onCancel,
+  label
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-2 text-xs"
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: C.slate
+    }
+  }, label || "تأكيد الحذف؟"), /*#__PURE__*/React.createElement("button", {
+    onClick: onConfirm,
+    className: "font-bold text-red-600 hover:underline"
+  }, "نعم"), /*#__PURE__*/React.createElement("button", {
+    onClick: onCancel,
+    className: "font-bold hover:underline",
+    style: {
+      color: C.slate
+    }
+  }, "تراجع"));
 }
 
 /* ============================================================
    الشريط الجانبي والتنقل
    ============================================================ */
-const NAV_ITEMS = [
-  { id: "dashboard", label: "لوحة المعلومات", icon: LayoutDashboard },
-  { id: "topics", label: "المواضيع", icon: FileText },
-  { id: "movements", label: "سجل حركة المواضيع", icon: ClipboardList },
-  { id: "entities", label: "الجهات", icon: Building2 },
-  { id: "committees", label: "اللجان والمجالس", icon: Landmark },
-  { id: "team", label: "الفئات الوظيفية", icon: Users },
-];
-
-function Sidebar({ view, setView, onReset, mobileOpen, setMobileOpen }) {
-  return (
-    <>
-      {/* الشريط الجانبي — للشاشات المتوسطة فأكبر */}
-      <aside
-        className="hidden md:flex md:flex-col w-64 shrink-0 h-screen sticky top-0"
-        style={{ background: C.navy950 }}
-      >
-        <div className="flex flex-col items-center gap-2 px-5 pt-6 pb-5">
-          <img src={FULL_LOGO_SRC} alt="شعار ديوان البلاط السلطاني" className="w-28 h-auto" />
-          <div className="font-extrabold text-white leading-tight text-[14px] text-center">دائرة المجالس واللجان</div>
-        </div>
-        <nav className="flex-1 px-3 space-y-1 mt-2">
-          {NAV_ITEMS.map((item) => {
-            const Icon = item.icon;
-            const active = view === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => setView(item.id)}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors relative"
-                style={{
-                  background: active ? "rgba(161,32,36,0.35)" : "transparent",
-                  color: active ? "#FFFFFF" : "#D9C6C4",
-                }}
-              >
-                {active && (
-                  <span className="absolute right-0 top-1.5 bottom-1.5 w-1 rounded-full bg-white" />
-                )}
-                <Icon size={17} />
-                {item.label}
-              </button>
-            );
-          })}
-        </nav>
-        <div className="px-3 pb-5 pt-2">
-          <button
-            onClick={onReset}
-            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-colors"
-            style={{ color: "#A89592" }}
-          >
-            <RotateCcw size={14} />
-            إعادة تعيين البيانات التجريبية
-          </button>
-        </div>
-      </aside>
-
-      {/* شريط علوي — للشاشات الصغيرة */}
-      <div className="flex md:hidden items-center justify-between px-4 py-3 sticky top-0 z-40" style={{ background: C.navy950 }}>
-        <div className="flex items-center gap-2">
-          <Seal size={34} />
-          <div className="font-extrabold text-white text-sm">دائرة المجالس واللجان</div>
-        </div>
-        <button onClick={() => setMobileOpen(!mobileOpen)} className="p-2 text-white" aria-label="القائمة">
-          <Menu size={20} />
-        </button>
-      </div>
-      {mobileOpen && (
-        <div className="md:hidden sticky top-[57px] z-30 px-2 py-2 flex flex-wrap gap-1.5" style={{ background: C.navy800 }}>
-          {NAV_ITEMS.map((item) => {
-            const Icon = item.icon;
-            const active = view === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => { setView(item.id); setMobileOpen(false); }}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold"
-                style={{ background: active ? C.gold500 : "rgba(255,255,255,0.08)", color: active ? "#FFFFFF" : "#E5E9F0" }}
-              >
-                <Icon size={13} />
-                {item.label}
-              </button>
-            );
-          })}
-        </div>
-      )}
-    </>
-  );
+const NAV_ITEMS = [{
+  id: "dashboard",
+  label: "لوحة المعلومات",
+  icon: LayoutDashboard
+}, {
+  id: "topics",
+  label: "المواضيع",
+  icon: FileText
+}, {
+  id: "movements",
+  label: "سجل حركة المواضيع",
+  icon: ClipboardList
+}, {
+  id: "entities",
+  label: "الجهات",
+  icon: Building2
+}, {
+  id: "committees",
+  label: "اللجان والمجالس",
+  icon: Landmark
+}, {
+  id: "team",
+  label: "الفئات الوظيفية",
+  icon: Users
+}];
+function Sidebar({
+  view,
+  setView,
+  onReset,
+  mobileOpen,
+  setMobileOpen
+}) {
+  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("aside", {
+    className: "hidden md:flex md:flex-col w-64 shrink-0 h-screen sticky top-0",
+    style: {
+      background: C.navy950
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex flex-col items-center gap-2 px-5 pt-6 pb-5"
+  }, /*#__PURE__*/React.createElement("img", {
+    src: FULL_LOGO_SRC,
+    alt: "شعار ديوان البلاط السلطاني",
+    className: "w-28 h-auto"
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "font-extrabold text-white leading-tight text-[14px] text-center"
+  }, "دائرة المجالس واللجان")), /*#__PURE__*/React.createElement("nav", {
+    className: "flex-1 px-3 space-y-1 mt-2"
+  }, NAV_ITEMS.map(item => {
+    const Icon = item.icon;
+    const active = view === item.id;
+    return /*#__PURE__*/React.createElement("button", {
+      key: item.id,
+      onClick: () => setView(item.id),
+      className: "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors relative",
+      style: {
+        background: active ? "rgba(161,32,36,0.35)" : "transparent",
+        color: active ? "#FFFFFF" : "#D9C6C4"
+      }
+    }, active && /*#__PURE__*/React.createElement("span", {
+      className: "absolute right-0 top-1.5 bottom-1.5 w-1 rounded-full bg-white"
+    }), /*#__PURE__*/React.createElement(Icon, {
+      size: 17
+    }), item.label);
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "px-3 pb-5 pt-2"
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: onReset,
+    className: "w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-colors",
+    style: {
+      color: "#A89592"
+    }
+  }, /*#__PURE__*/React.createElement(RotateCcw, {
+    size: 14
+  }), "تحديث البيانات"))), /*#__PURE__*/React.createElement("div", {
+    className: "flex md:hidden items-center justify-between px-4 py-3 sticky top-0 z-40",
+    style: {
+      background: C.navy950
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-2"
+  }, /*#__PURE__*/React.createElement(Seal, {
+    size: 34
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "font-extrabold text-white text-sm"
+  }, "دائرة المجالس واللجان")), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setMobileOpen(!mobileOpen),
+    className: "p-2 text-white",
+    "aria-label": "القائمة"
+  }, /*#__PURE__*/React.createElement(Menu, {
+    size: 20
+  }))), mobileOpen && /*#__PURE__*/React.createElement("div", {
+    className: "md:hidden sticky top-[57px] z-30 px-2 py-2 flex flex-wrap gap-1.5",
+    style: {
+      background: C.navy800
+    }
+  }, NAV_ITEMS.map(item => {
+    const Icon = item.icon;
+    const active = view === item.id;
+    return /*#__PURE__*/React.createElement("button", {
+      key: item.id,
+      onClick: () => {
+        setView(item.id);
+        setMobileOpen(false);
+      },
+      className: "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold",
+      style: {
+        background: active ? C.gold500 : "rgba(255,255,255,0.08)",
+        color: active ? "#FFFFFF" : "#E5E9F0"
+      }
+    }, /*#__PURE__*/React.createElement(Icon, {
+      size: 13
+    }), item.label);
+  })));
 }
 
 /* ============================================================
    لوحة المعلومات
    ============================================================ */
-function DashboardView({ data }) {
+function DashboardView({
+  data
+}) {
   const now = new Date();
   const stats = useMemo(() => {
     const totalTopics = data.topics.length;
-    const activeTopics = data.topics.filter((t) => t.status === "نشط").length;
-    const incomingMonth = data.movements.filter((m) => m.direction === "وارد" && isSameMonth(m.date, now)).length;
-    const outgoingMonth = data.movements.filter((m) => m.direction === "صادر" && isSameMonth(m.date, now)).length;
-    const pending = data.movements.filter((m) => m.status === "قيد الإجراء").length;
-    return { totalTopics, activeTopics, incomingMonth, outgoingMonth, pending };
+    const activeTopics = data.topics.filter(t => t.status === "نشط").length;
+    const incomingMonth = data.movements.filter(m => m.direction === "وارد" && isSameMonth(m.date, now)).length;
+    const outgoingMonth = data.movements.filter(m => m.direction === "صادر" && isSameMonth(m.date, now)).length;
+    const pending = data.movements.filter(m => m.status === "قيد الإجراء").length;
+    return {
+      totalTopics,
+      activeTopics,
+      incomingMonth,
+      outgoingMonth,
+      pending
+    };
   }, [data, now]);
-
-  const byCommittee = useMemo(
-    () => COMMITTEES.map((c) => ({ name: c.short, count: data.topics.filter((t) => t.committeeId === c.id).length })),
-    [data.topics]
-  );
-
-  const topicsById = useMemo(() => Object.fromEntries(data.topics.map((t) => [t.id, t])), [data.topics]);
-  const recent = useMemo(
-    () => [...data.movements].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 6),
-    [data.movements]
-  );
-
-  return (
-    <div>
-      <PageHeader title="لوحة المعلومات" subtitle="نظرة عامة على أعمال الدائرة وحركة المواضيع" />
-
-      {/* شريط الملخص — وارد ⇄ صادر */}
-      <div className="rounded-xl p-4 mb-5 flex items-center justify-between flex-wrap gap-4" style={{ background: C.navy950 }}>
-        <div className="flex items-center gap-3">
-          <div className="rounded-full p-2" style={{ background: "rgba(161,32,36,0.14)" }}>
-            <Inbox size={18} color={C.gold500} />
-          </div>
-          <div>
-            <div className="text-[11px]" style={{ color: "#A9B4C6" }}>الوارد هذا الشهر</div>
-            <div className="text-white font-extrabold text-lg">{stats.incomingMonth}</div>
-          </div>
-        </div>
-        <div className="h-8 w-px" style={{ background: "rgba(255,255,255,0.15)" }} />
-        <div className="flex items-center gap-3">
-          <div className="rounded-full p-2" style={{ background: "rgba(161,32,36,0.14)" }}>
-            <Send size={18} color={C.gold500} />
-          </div>
-          <div>
-            <div className="text-[11px]" style={{ color: "#A9B4C6" }}>الصادر هذا الشهر</div>
-            <div className="text-white font-extrabold text-lg">{stats.outgoingMonth}</div>
-          </div>
-        </div>
-        <div className="h-8 w-px hidden sm:block" style={{ background: "rgba(255,255,255,0.15)" }} />
-        <div className="text-xs" style={{ color: "#A9B4C6" }}>
-          إجمالي الحركات المسجّلة: <span className="font-bold text-white">{data.movements.length}</span>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        <StatCard icon={FileText} label="إجمالي المواضيع" value={stats.totalTopics} />
-        <StatCard icon={CheckCircle2} label="مواضيع نشطة" value={stats.activeTopics} />
-        <StatCard icon={Clock} label="حركات قيد الإجراء" value={stats.pending} tone="gold" />
-        <StatCard icon={ClipboardList} label="إجمالي الحركات" value={data.movements.length} />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-        <div className="lg:col-span-2 bg-white rounded-xl p-4 shadow-sm">
-          <h3 className="font-bold text-sm mb-3" style={{ color: C.navy950 }}>المواضيع حسب اللجنة</h3>
-          <div style={{ width: "100%", height: 220 }}>
-            <ResponsiveContainer>
-              <BarChart data={byCommittee} layout="vertical" margin={{ left: 10, right: 10 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#EFE7DD" horizontal={false} />
-                <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11, fill: C.slate }} />
-                <YAxis type="category" dataKey="name" width={90} tick={{ fontSize: 11, fill: C.ink }} />
-                <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #EAE6DA" }} />
-                <Bar dataKey="count" radius={[0, 4, 4, 0]}>
-                  {byCommittee.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        <div className="lg:col-span-3 bg-white rounded-xl p-4 shadow-sm">
-          <h3 className="font-bold text-sm mb-3" style={{ color: C.navy950 }}>آخر الحركات</h3>
-          {recent.length === 0 ? (
-            <p className="text-sm" style={{ color: C.slate }}>لا توجد حركات مسجّلة بعد.</p>
-          ) : (
-            <div className="divide-y" style={{ borderColor: "#F0ECE0" }}>
-              {recent.map((m) => (
-                <div key={m.id} className="py-2.5 flex items-center justify-between gap-3" style={{ borderColor: "#F0ECE0" }}>
-                  <div className="min-w-0">
-                    <div className="text-sm font-semibold truncate" style={{ color: C.ink }}>
-                      {topicsById[m.topicId] ? topicsById[m.topicId].title : "—"}
-                    </div>
-                    <div className="text-xs mt-0.5" style={{ color: C.slate }}>{m.type} · {m.entity || "داخلي"} · {fmtDate(m.date)}</div>
-                  </div>
-                  <Badge tone={m.direction === "وارد" ? "navy" : "gold"}>
-                    {m.direction === "وارد" ? <Inbox size={11} /> : <Send size={11} />}
-                    {m.direction}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
+  const byCommittee = useMemo(() => COMMITTEES.map(c => ({
+    name: c.short,
+    count: data.topics.filter(t => t.committeeId === c.id).length
+  })), [data.topics]);
+  const maxCommitteeCount = Math.max(1, ...byCommittee.map(r => r.count));
+  const topicsById = useMemo(() => Object.fromEntries(data.topics.map(t => [t.id, t])), [data.topics]);
+  const recent = useMemo(() => [...data.movements].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 6), [data.movements]);
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(PageHeader, {
+    title: "لوحة المعلومات",
+    subtitle: "نظرة عامة على أعمال الدائرة وحركة المواضيع"
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "rounded-xl p-4 mb-5 flex items-center justify-between flex-wrap gap-4",
+    style: {
+      background: C.navy950
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-3"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "rounded-full p-2",
+    style: {
+      background: "rgba(161,32,36,0.14)"
+    }
+  }, /*#__PURE__*/React.createElement(Inbox, {
+    size: 18,
+    color: C.gold500
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "text-[11px]",
+    style: {
+      color: "#A9B4C6"
+    }
+  }, "الوارد هذا الشهر"), /*#__PURE__*/React.createElement("div", {
+    className: "text-white font-extrabold text-lg"
+  }, stats.incomingMonth))), /*#__PURE__*/React.createElement("div", {
+    className: "h-8 w-px",
+    style: {
+      background: "rgba(255,255,255,0.15)"
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-3"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "rounded-full p-2",
+    style: {
+      background: "rgba(161,32,36,0.14)"
+    }
+  }, /*#__PURE__*/React.createElement(Send, {
+    size: 18,
+    color: C.gold500
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "text-[11px]",
+    style: {
+      color: "#A9B4C6"
+    }
+  }, "الصادر هذا الشهر"), /*#__PURE__*/React.createElement("div", {
+    className: "text-white font-extrabold text-lg"
+  }, stats.outgoingMonth))), /*#__PURE__*/React.createElement("div", {
+    className: "h-8 w-px hidden sm:block",
+    style: {
+      background: "rgba(255,255,255,0.15)"
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "text-xs",
+    style: {
+      color: "#A9B4C6"
+    }
+  }, "إجمالي الحركات المسجّلة: ", /*#__PURE__*/React.createElement("span", {
+    className: "font-bold text-white"
+  }, data.movements.length))), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6"
+  }, /*#__PURE__*/React.createElement(StatCard, {
+    icon: FileText,
+    label: "إجمالي المواضيع",
+    value: stats.totalTopics
+  }), /*#__PURE__*/React.createElement(StatCard, {
+    icon: CheckCircle2,
+    label: "مواضيع نشطة",
+    value: stats.activeTopics
+  }), /*#__PURE__*/React.createElement(StatCard, {
+    icon: Clock,
+    label: "حركات قيد الإجراء",
+    value: stats.pending,
+    tone: "gold"
+  }), /*#__PURE__*/React.createElement(StatCard, {
+    icon: ClipboardList,
+    label: "إجمالي الحركات",
+    value: data.movements.length
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-1 lg:grid-cols-5 gap-4"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "lg:col-span-2 bg-white rounded-xl p-4 shadow-sm"
+  }, /*#__PURE__*/React.createElement("h3", {
+    className: "font-bold text-sm mb-3",
+    style: {
+      color: C.navy950
+    }
+  }, "المواضيع حسب اللجنة"), /*#__PURE__*/React.createElement("div", {
+    className: "space-y-3.5 py-1"
+  }, byCommittee.map((row, i) => /*#__PURE__*/React.createElement("div", {
+    key: row.name
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center justify-between text-xs mb-1"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "font-semibold",
+    style: {
+      color: C.ink
+    }
+  }, row.name), /*#__PURE__*/React.createElement("span", {
+    className: "font-bold",
+    style: {
+      color: C.navy950
+    }
+  }, row.count)), /*#__PURE__*/React.createElement("div", {
+    className: "w-full rounded-full h-2.5",
+    style: {
+      background: "#EFE7DD"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "h-2.5 rounded-full transition-all duration-500",
+    style: {
+      width: row.count / maxCommitteeCount * 100 + "%",
+      background: CHART_COLORS[i % CHART_COLORS.length]
+    }
+  })))))), /*#__PURE__*/React.createElement("div", {
+    className: "lg:col-span-3 bg-white rounded-xl p-4 shadow-sm"
+  }, /*#__PURE__*/React.createElement("h3", {
+    className: "font-bold text-sm mb-3",
+    style: {
+      color: C.navy950
+    }
+  }, "آخر الحركات"), recent.length === 0 ? /*#__PURE__*/React.createElement("p", {
+    className: "text-sm",
+    style: {
+      color: C.slate
+    }
+  }, "لا توجد حركات مسجّلة بعد.") : /*#__PURE__*/React.createElement("div", {
+    className: "divide-y",
+    style: {
+      borderColor: "#F0ECE0"
+    }
+  }, recent.map(m => /*#__PURE__*/React.createElement("div", {
+    key: m.id,
+    className: "py-2.5 flex items-center justify-between gap-3",
+    style: {
+      borderColor: "#F0ECE0"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "min-w-0"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-sm font-semibold truncate",
+    style: {
+      color: C.ink
+    }
+  }, topicsById[m.topicId] ? topicsById[m.topicId].title : "—"), /*#__PURE__*/React.createElement("div", {
+    className: "text-xs mt-0.5",
+    style: {
+      color: C.slate
+    }
+  }, m.type, " · ", m.entity || "داخلي", " · ", fmtDate(m.date))), /*#__PURE__*/React.createElement(Badge, {
+    tone: m.direction === "وارد" ? "navy" : "gold"
+  }, m.direction === "وارد" ? /*#__PURE__*/React.createElement(Inbox, {
+    size: 11
+  }) : /*#__PURE__*/React.createElement(Send, {
+    size: 11
+  }), m.direction)))))));
 }
 
 /* ============================================================
    المواضيع
    ============================================================ */
-function TopicCard({ topic, movementCount, onOpen }) {
+function TopicCard({
+  topic,
+  movementCount,
+  onOpen
+}) {
   const statusTone = topic.status === "نشط" ? "green" : topic.status === "قيد الانتظار" ? "amber" : "gray";
-  return (
-    <button
-      onClick={onOpen}
-      className="text-right bg-white rounded-xl p-4 shadow-sm border-t-2 hover:shadow-md transition-shadow w-full"
-      style={{ borderColor: C.gold500 }}
-    >
-      <div className="flex items-start justify-between gap-2 mb-2">
-        <Badge tone="navy">{committeeShort(topic.committeeId)}</Badge>
-        <Badge tone={statusTone}>{topic.status}</Badge>
-      </div>
-      <h3 className="font-bold text-sm mb-1.5 leading-snug" style={{ color: C.navy950 }}>{topic.title}</h3>
-      <p className="text-xs mb-3 line-clamp-2" style={{ color: C.slate }}>{topic.description || "بدون وصف"}</p>
-      <div className="flex items-center justify-between text-xs" style={{ color: C.slate }}>
-        <span>{topic.responsibleRole}</span>
-        <span className="font-semibold">{movementCount} حركة</span>
-      </div>
-    </button>
-  );
+  return /*#__PURE__*/React.createElement("button", {
+    onClick: onOpen,
+    className: "text-right bg-white rounded-xl p-4 shadow-sm border-t-2 hover:shadow-md transition-shadow w-full",
+    style: {
+      borderColor: C.gold500
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-start justify-between gap-2 mb-2"
+  }, /*#__PURE__*/React.createElement(Badge, {
+    tone: "navy"
+  }, committeeShort(topic.committeeId)), /*#__PURE__*/React.createElement(Badge, {
+    tone: statusTone
+  }, topic.status)), /*#__PURE__*/React.createElement("h3", {
+    className: "font-bold text-sm mb-1.5 leading-snug",
+    style: {
+      color: C.navy950
+    }
+  }, topic.title), /*#__PURE__*/React.createElement("p", {
+    className: "text-xs mb-3 line-clamp-2",
+    style: {
+      color: C.slate
+    }
+  }, topic.description || "بدون وصف"), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center justify-between text-xs",
+    style: {
+      color: C.slate
+    }
+  }, /*#__PURE__*/React.createElement("span", null, topic.responsibleRole), /*#__PURE__*/React.createElement("span", {
+    className: "font-semibold"
+  }, movementCount, " حركة")));
 }
-
-function TopicFormModal({ initial, onSave, onClose }) {
+function TopicFormModal({
+  initial,
+  onSave,
+  onClose
+}) {
   const [title, setTitle] = useState(initial ? initial.title : "");
   const [committeeId, setCommitteeId] = useState(initial ? initial.committeeId : COMMITTEES[0].id);
   const [customCommittee, setCustomCommittee] = useState(initial ? initial.customCommittee || "" : "");
@@ -476,115 +1074,230 @@ function TopicFormModal({ initial, onSave, onClose }) {
   const [status, setStatus] = useState(initial ? initial.status : "نشط");
   const [description, setDescription] = useState(initial ? initial.description : "");
   const [error, setError] = useState("");
-
   function handleSave() {
-    if (!title.trim()) { setError("يرجى إدخال عنوان الموضوع."); return; }
-    if (committeeId === "other" && !customCommittee.trim()) { setError("يرجى تحديد اسم اللجنة/المجلس ضمن (أخرى)."); return; }
-    onSave({ title: title.trim(), committeeId, customCommittee: committeeId === "other" ? customCommittee.trim() : "", responsibleRole, status, description: description.trim() });
+    if (!title.trim()) {
+      setError("يرجى إدخال عنوان الموضوع.");
+      return;
+    }
+    if (committeeId === "other" && !customCommittee.trim()) {
+      setError("يرجى تحديد اسم اللجنة/المجلس ضمن (أخرى).");
+      return;
+    }
+    onSave({
+      title: title.trim(),
+      committeeId,
+      customCommittee: committeeId === "other" ? customCommittee.trim() : "",
+      responsibleRole,
+      status,
+      description: description.trim()
+    });
   }
-
-  return (
-    <Modal title={initial ? "تعديل الموضوع" : "موضوع جديد"} onClose={onClose}>
-      <Field label="عنوان الموضوع">
-        <input className={inputClass} style={inputStyle} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="مثال: متابعة أعمال لجنة المناقصات" />
-      </Field>
-      <Field label="اللجنة / المجلس">
-        <select className={inputClass} style={inputStyle} value={committeeId} onChange={(e) => setCommitteeId(e.target.value)}>
-          {COMMITTEES.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </select>
-      </Field>
-      {committeeId === "other" && (
-        <Field label="اسم اللجنة/المجلس">
-          <input className={inputClass} style={inputStyle} value={customCommittee} onChange={(e) => setCustomCommittee(e.target.value)} placeholder="حدد الاسم" />
-        </Field>
-      )}
-      <Field label="الجهة/الفئة المسؤولة">
-        <select className={inputClass} style={inputStyle} value={responsibleRole} onChange={(e) => setResponsibleRole(e.target.value)}>
-          {ALL_ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
-        </select>
-      </Field>
-      {initial && (
-        <Field label="الحالة">
-          <select className={inputClass} style={inputStyle} value={status} onChange={(e) => setStatus(e.target.value)}>
-            {TOPIC_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-          </select>
-        </Field>
-      )}
-      <Field label="الوصف">
-        <textarea className={inputClass} style={inputStyle} rows={3} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="وصف مختصر للموضوع" />
-      </Field>
-      {error && <p className="text-xs text-red-600 mb-3">{error}</p>}
-      <div className="flex gap-2 justify-end mt-2">
-        <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm font-semibold" style={{ color: C.slate }}>إلغاء</button>
-        <button onClick={handleSave} className="px-4 py-2 rounded-lg text-sm font-bold text-white" style={{ background: C.navy950 }}>حفظ</button>
-      </div>
-    </Modal>
-  );
+  return /*#__PURE__*/React.createElement(Modal, {
+    title: initial ? "تعديل الموضوع" : "موضوع جديد",
+    onClose: onClose
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "عنوان الموضوع"
+  }, /*#__PURE__*/React.createElement("input", {
+    className: inputClass,
+    style: inputStyle,
+    value: title,
+    onChange: e => setTitle(e.target.value),
+    placeholder: "مثال: متابعة أعمال لجنة المناقصات"
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "اللجنة / المجلس"
+  }, /*#__PURE__*/React.createElement("select", {
+    className: inputClass,
+    style: inputStyle,
+    value: committeeId,
+    onChange: e => setCommitteeId(e.target.value)
+  }, COMMITTEES.map(c => /*#__PURE__*/React.createElement("option", {
+    key: c.id,
+    value: c.id
+  }, c.name)))), committeeId === "other" && /*#__PURE__*/React.createElement(Field, {
+    label: "اسم اللجنة/المجلس"
+  }, /*#__PURE__*/React.createElement("input", {
+    className: inputClass,
+    style: inputStyle,
+    value: customCommittee,
+    onChange: e => setCustomCommittee(e.target.value),
+    placeholder: "حدد الاسم"
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "الجهة/الفئة المسؤولة"
+  }, /*#__PURE__*/React.createElement("select", {
+    className: inputClass,
+    style: inputStyle,
+    value: responsibleRole,
+    onChange: e => setResponsibleRole(e.target.value)
+  }, ALL_ROLES.map(r => /*#__PURE__*/React.createElement("option", {
+    key: r,
+    value: r
+  }, r)))), initial && /*#__PURE__*/React.createElement(Field, {
+    label: "الحالة"
+  }, /*#__PURE__*/React.createElement("select", {
+    className: inputClass,
+    style: inputStyle,
+    value: status,
+    onChange: e => setStatus(e.target.value)
+  }, TOPIC_STATUSES.map(s => /*#__PURE__*/React.createElement("option", {
+    key: s,
+    value: s
+  }, s)))), /*#__PURE__*/React.createElement(Field, {
+    label: "الوصف"
+  }, /*#__PURE__*/React.createElement("textarea", {
+    className: inputClass,
+    style: inputStyle,
+    rows: 3,
+    value: description,
+    onChange: e => setDescription(e.target.value),
+    placeholder: "وصف مختصر للموضوع"
+  })), error && /*#__PURE__*/React.createElement("p", {
+    className: "text-xs text-red-600 mb-3"
+  }, error), /*#__PURE__*/React.createElement("div", {
+    className: "flex gap-2 justify-end mt-2"
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: onClose,
+    className: "px-4 py-2 rounded-lg text-sm font-semibold",
+    style: {
+      color: C.slate
+    }
+  }, "إلغاء"), /*#__PURE__*/React.createElement("button", {
+    onClick: handleSave,
+    className: "px-4 py-2 rounded-lg text-sm font-bold text-white",
+    style: {
+      background: C.navy950
+    }
+  }, "حفظ")));
 }
-
-function TopicDetailModal({ topic, movements, onClose, onEdit, onAddMovement, onDeleteMovement }) {
+function TopicDetailModal({
+  topic,
+  movements,
+  onClose,
+  onEdit,
+  onAddMovement,
+  onDeleteMovement
+}) {
   const [confirmId, setConfirmId] = useState(null);
   const statusTone = topic.status === "نشط" ? "green" : topic.status === "قيد الانتظار" ? "amber" : "gray";
   const sorted = [...movements].sort((a, b) => new Date(b.date) - new Date(a.date));
-
-  return (
-    <Modal title="تفاصيل الموضوع" onClose={onClose} wide>
-      <div className="flex items-start justify-between gap-3 mb-4">
-        <div>
-          <div className="flex items-center gap-2 mb-1.5">
-            <Badge tone="navy">{committeeName(topic.committeeId, topic.customCommittee)}</Badge>
-            <Badge tone={statusTone}>{topic.status}</Badge>
-          </div>
-          <h3 className="font-extrabold text-base" style={{ color: C.navy950 }}>{topic.title}</h3>
-          <p className="text-sm mt-1" style={{ color: C.slate }}>{topic.description || "بدون وصف"}</p>
-          <p className="text-xs mt-2" style={{ color: C.slate }}>الجهة المسؤولة: <span className="font-semibold">{topic.responsibleRole}</span> · أُنشئ في {fmtDate(topic.createdAt)}</p>
-        </div>
-        <button onClick={onEdit} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0" style={{ background: C.gold100, color: C.gold600 }}>
-          <Pencil size={13} /> تعديل
-        </button>
-      </div>
-
-      <div className="flex items-center justify-between mb-2">
-        <h4 className="font-bold text-sm" style={{ color: C.navy950 }}>حركة الموضوع ({sorted.length})</h4>
-        <button onClick={onAddMovement} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold text-white" style={{ background: C.navy950 }}>
-          <Plus size={13} /> حركة جديدة
-        </button>
-      </div>
-
-      {sorted.length === 0 ? (
-        <p className="text-sm py-6 text-center" style={{ color: C.slate }}>لا توجد حركات مسجّلة لهذا الموضوع بعد.</p>
-      ) : (
-        <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
-          {sorted.map((m) => (
-            <div key={m.id} className="rounded-lg border p-3" style={{ borderColor: "#EFE7DD" }}>
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Badge tone={m.direction === "وارد" ? "navy" : "gold"}>
-                    {m.direction === "وارد" ? <Inbox size={11} /> : <Send size={11} />} {m.direction}
-                  </Badge>
-                  <span className="text-xs font-semibold" style={{ color: C.ink }}>{m.type}</span>
-                  <Badge tone={m.status === "منجز" ? "green" : "amber"}>{m.status}</Badge>
-                </div>
-                {confirmId === m.id ? (
-                  <ConfirmInline onConfirm={() => { onDeleteMovement(m.id); setConfirmId(null); }} onCancel={() => setConfirmId(null)} />
-                ) : (
-                  <button onClick={() => setConfirmId(m.id)} className="text-gray-400 hover:text-red-500 transition-colors" aria-label="حذف">
-                    <Trash2 size={14} />
-                  </button>
-                )}
-              </div>
-              <p className="text-xs mt-1.5" style={{ color: C.slate }}>{m.entity || "داخلي"} · {fmtDate(m.date)} {m.referenceNumber && <> · <RefBox>{m.referenceNumber}</RefBox></>}</p>
-              {m.notes && <p className="text-xs mt-1.5" style={{ color: C.ink }}>{m.notes}</p>}
-              <p className="text-[11px] mt-1.5" style={{ color: C.slate }}>المسؤول: {m.responsibleRole}</p>
-            </div>
-          ))}
-        </div>
-      )}
-    </Modal>
-  );
+  return /*#__PURE__*/React.createElement(Modal, {
+    title: "تفاصيل الموضوع",
+    onClose: onClose,
+    wide: true
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-start justify-between gap-3 mb-4"
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-2 mb-1.5"
+  }, /*#__PURE__*/React.createElement(Badge, {
+    tone: "navy"
+  }, committeeName(topic.committeeId, topic.customCommittee)), /*#__PURE__*/React.createElement(Badge, {
+    tone: statusTone
+  }, topic.status)), /*#__PURE__*/React.createElement("h3", {
+    className: "font-extrabold text-base",
+    style: {
+      color: C.navy950
+    }
+  }, topic.title), /*#__PURE__*/React.createElement("p", {
+    className: "text-sm mt-1",
+    style: {
+      color: C.slate
+    }
+  }, topic.description || "بدون وصف"), /*#__PURE__*/React.createElement("p", {
+    className: "text-xs mt-2",
+    style: {
+      color: C.slate
+    }
+  }, "الجهة المسؤولة: ", /*#__PURE__*/React.createElement("span", {
+    className: "font-semibold"
+  }, topic.responsibleRole), " · أُنشئ في ", fmtDate(topic.createdAt))), /*#__PURE__*/React.createElement("button", {
+    onClick: onEdit,
+    className: "flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0",
+    style: {
+      background: C.gold100,
+      color: C.gold600
+    }
+  }, /*#__PURE__*/React.createElement(Pencil, {
+    size: 13
+  }), " تعديل")), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center justify-between mb-2"
+  }, /*#__PURE__*/React.createElement("h4", {
+    className: "font-bold text-sm",
+    style: {
+      color: C.navy950
+    }
+  }, "حركة الموضوع (", sorted.length, ")"), /*#__PURE__*/React.createElement("button", {
+    onClick: onAddMovement,
+    className: "flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold text-white",
+    style: {
+      background: C.navy950
+    }
+  }, /*#__PURE__*/React.createElement(Plus, {
+    size: 13
+  }), " حركة جديدة")), sorted.length === 0 ? /*#__PURE__*/React.createElement("p", {
+    className: "text-sm py-6 text-center",
+    style: {
+      color: C.slate
+    }
+  }, "لا توجد حركات مسجّلة لهذا الموضوع بعد.") : /*#__PURE__*/React.createElement("div", {
+    className: "space-y-2 max-h-80 overflow-y-auto pr-1"
+  }, sorted.map(m => /*#__PURE__*/React.createElement("div", {
+    key: m.id,
+    className: "rounded-lg border p-3",
+    style: {
+      borderColor: "#EFE7DD"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-start justify-between gap-2"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-2 flex-wrap"
+  }, /*#__PURE__*/React.createElement(Badge, {
+    tone: m.direction === "وارد" ? "navy" : "gold"
+  }, m.direction === "وارد" ? /*#__PURE__*/React.createElement(Inbox, {
+    size: 11
+  }) : /*#__PURE__*/React.createElement(Send, {
+    size: 11
+  }), " ", m.direction), /*#__PURE__*/React.createElement("span", {
+    className: "text-xs font-semibold",
+    style: {
+      color: C.ink
+    }
+  }, m.type), /*#__PURE__*/React.createElement(Badge, {
+    tone: m.status === "منجز" ? "green" : "amber"
+  }, m.status)), confirmId === m.id ? /*#__PURE__*/React.createElement(ConfirmInline, {
+    onConfirm: () => {
+      onDeleteMovement(m.id);
+      setConfirmId(null);
+    },
+    onCancel: () => setConfirmId(null)
+  }) : /*#__PURE__*/React.createElement("button", {
+    onClick: () => setConfirmId(m.id),
+    className: "text-gray-400 hover:text-red-500 transition-colors",
+    "aria-label": "حذف"
+  }, /*#__PURE__*/React.createElement(Trash2, {
+    size: 14
+  }))), /*#__PURE__*/React.createElement("p", {
+    className: "text-xs mt-1.5",
+    style: {
+      color: C.slate
+    }
+  }, m.entity || "داخلي", " · ", fmtDate(m.date), " ", m.referenceNumber && /*#__PURE__*/React.createElement(React.Fragment, null, " · ", /*#__PURE__*/React.createElement(RefBox, null, m.referenceNumber))), m.notes && /*#__PURE__*/React.createElement("p", {
+    className: "text-xs mt-1.5",
+    style: {
+      color: C.ink
+    }
+  }, m.notes), /*#__PURE__*/React.createElement("p", {
+    className: "text-[11px] mt-1.5",
+    style: {
+      color: C.slate
+    }
+  }, "المسؤول: ", m.responsibleRole)))));
 }
-
-function TopicsView({ data, onAddTopic, onUpdateTopic, onAddMovement, onDeleteMovement }) {
+function TopicsView({
+  data,
+  onAddTopic,
+  onUpdateTopic,
+  onAddMovement,
+  onDeleteMovement
+}) {
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [formOpen, setFormOpen] = useState(false);
@@ -592,90 +1305,120 @@ function TopicsView({ data, onAddTopic, onUpdateTopic, onAddMovement, onDeleteMo
   const [detailId, setDetailId] = useState(null);
   const [presetTopicForMovement, setPresetTopicForMovement] = useState(null);
   const [movementFormOpen, setMovementFormOpen] = useState(false);
-
-  const filtered = data.topics.filter((t) => {
+  const filtered = data.topics.filter(t => {
     if (filter !== "all" && t.committeeId !== filter) return false;
     if (search && !t.title.includes(search) && !(t.description || "").includes(search)) return false;
     return true;
   });
-
-  const detailTopic = data.topics.find((t) => t.id === detailId);
-  const detailMovements = detailTopic ? data.movements.filter((m) => m.topicId === detailTopic.id) : [];
-
-  return (
-    <div>
-      <PageHeader
-        title="المواضيع"
-        subtitle="جميع مواضيع اللجان والمجالس التي تتابعها الدائرة"
-        action={
-          <button onClick={() => { setEditingTopic(null); setFormOpen(true); }} className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold text-white" style={{ background: C.navy950 }}>
-            <Plus size={16} /> موضوع جديد
-          </button>
-        }
-      />
-
-      <div className="flex flex-wrap items-center gap-2 mb-5">
-        <button onClick={() => setFilter("all")} className="px-3 py-1.5 rounded-full text-xs font-semibold" style={{ background: filter === "all" ? C.navy950 : "#EEEAE0", color: filter === "all" ? "#fff" : C.navy800 }}>الكل</button>
-        {COMMITTEES.map((c) => (
-          <button key={c.id} onClick={() => setFilter(c.id)} className="px-3 py-1.5 rounded-full text-xs font-semibold" style={{ background: filter === c.id ? C.navy950 : "#EEEAE0", color: filter === c.id ? "#fff" : C.navy800 }}>{c.short}</button>
-        ))}
-        <div className="relative mr-auto">
-          <Search size={14} className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: C.slate }} />
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="بحث في المواضيع..." className="rounded-full border pr-9 pl-3 py-1.5 text-xs w-48 outline-none focus:ring-2 focus:ring-red-400" style={{ borderColor: "#D8D2C0" }} />
-        </div>
-      </div>
-
-      {filtered.length === 0 ? (
-        <div className="text-center py-16 bg-white rounded-xl shadow-sm">
-          <p className="text-sm" style={{ color: C.slate }}>لا توجد مواضيع مطابقة. أضف موضوعًا جديدًا للبدء.</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((t) => (
-            <TopicCard key={t.id} topic={t} movementCount={data.movements.filter((m) => m.topicId === t.id).length} onOpen={() => setDetailId(t.id)} />
-          ))}
-        </div>
-      )}
-
-      {formOpen && (
-        <TopicFormModal
-          initial={editingTopic}
-          onClose={() => setFormOpen(false)}
-          onSave={(payload) => {
-            if (editingTopic) onUpdateTopic(editingTopic.id, payload);
-            else onAddTopic(payload);
-            setFormOpen(false);
-          }}
-        />
-      )}
-
-      {detailTopic && !movementFormOpen && (
-        <TopicDetailModal
-          topic={detailTopic}
-          movements={detailMovements}
-          onClose={() => setDetailId(null)}
-          onEdit={() => { setEditingTopic(detailTopic); setFormOpen(true); setDetailId(null); }}
-          onAddMovement={() => { setPresetTopicForMovement(detailTopic.id); setMovementFormOpen(true); }}
-          onDeleteMovement={onDeleteMovement}
-        />
-      )}
-
-      {movementFormOpen && (
-        <MovementFormModal
-          topics={data.topics}
-          presetTopicId={presetTopicForMovement}
-          onClose={() => { setMovementFormOpen(false); setPresetTopicForMovement(null); }}
-          onSave={(payload) => { onAddMovement(payload); setMovementFormOpen(false); setPresetTopicForMovement(null); }}
-        />
-      )}
-    </div>
-  );
+  const detailTopic = data.topics.find(t => t.id === detailId);
+  const detailMovements = detailTopic ? data.movements.filter(m => m.topicId === detailTopic.id) : [];
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(PageHeader, {
+    title: "المواضيع",
+    subtitle: "جميع مواضيع اللجان والمجالس التي تتابعها الدائرة",
+    action: /*#__PURE__*/React.createElement("button", {
+      onClick: () => {
+        setEditingTopic(null);
+        setFormOpen(true);
+      },
+      className: "flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold text-white",
+      style: {
+        background: C.navy950
+      }
+    }, /*#__PURE__*/React.createElement(Plus, {
+      size: 16
+    }), " موضوع جديد")
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "flex flex-wrap items-center gap-2 mb-5"
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setFilter("all"),
+    className: "px-3 py-1.5 rounded-full text-xs font-semibold",
+    style: {
+      background: filter === "all" ? C.navy950 : "#EEEAE0",
+      color: filter === "all" ? "#fff" : C.navy800
+    }
+  }, "الكل"), COMMITTEES.map(c => /*#__PURE__*/React.createElement("button", {
+    key: c.id,
+    onClick: () => setFilter(c.id),
+    className: "px-3 py-1.5 rounded-full text-xs font-semibold",
+    style: {
+      background: filter === c.id ? C.navy950 : "#EEEAE0",
+      color: filter === c.id ? "#fff" : C.navy800
+    }
+  }, c.short)), /*#__PURE__*/React.createElement("div", {
+    className: "relative mr-auto"
+  }, /*#__PURE__*/React.createElement(Search, {
+    size: 14,
+    className: "absolute right-3 top-1/2 -translate-y-1/2",
+    style: {
+      color: C.slate
+    }
+  }), /*#__PURE__*/React.createElement("input", {
+    value: search,
+    onChange: e => setSearch(e.target.value),
+    placeholder: "بحث في المواضيع...",
+    className: "rounded-full border pr-9 pl-3 py-1.5 text-xs w-48 outline-none focus:ring-2 focus:ring-red-400",
+    style: {
+      borderColor: "#D8D2C0"
+    }
+  }))), filtered.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    className: "text-center py-16 bg-white rounded-xl shadow-sm"
+  }, /*#__PURE__*/React.createElement("p", {
+    className: "text-sm",
+    style: {
+      color: C.slate
+    }
+  }, "لا توجد مواضيع مطابقة. أضف موضوعًا جديدًا للبدء.")) : /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+  }, filtered.map(t => /*#__PURE__*/React.createElement(TopicCard, {
+    key: t.id,
+    topic: t,
+    movementCount: data.movements.filter(m => m.topicId === t.id).length,
+    onOpen: () => setDetailId(t.id)
+  }))), formOpen && /*#__PURE__*/React.createElement(TopicFormModal, {
+    initial: editingTopic,
+    onClose: () => setFormOpen(false),
+    onSave: payload => {
+      if (editingTopic) onUpdateTopic(editingTopic.id, payload);else onAddTopic(payload);
+      setFormOpen(false);
+    }
+  }), detailTopic && !movementFormOpen && /*#__PURE__*/React.createElement(TopicDetailModal, {
+    topic: detailTopic,
+    movements: detailMovements,
+    onClose: () => setDetailId(null),
+    onEdit: () => {
+      setEditingTopic(detailTopic);
+      setFormOpen(true);
+      setDetailId(null);
+    },
+    onAddMovement: () => {
+      setPresetTopicForMovement(detailTopic.id);
+      setMovementFormOpen(true);
+    },
+    onDeleteMovement: onDeleteMovement
+  }), movementFormOpen && /*#__PURE__*/React.createElement(MovementFormModal, {
+    topics: data.topics,
+    presetTopicId: presetTopicForMovement,
+    onClose: () => {
+      setMovementFormOpen(false);
+      setPresetTopicForMovement(null);
+    },
+    onSave: payload => {
+      onAddMovement(payload);
+      setMovementFormOpen(false);
+      setPresetTopicForMovement(null);
+    }
+  }));
 }
 
 /* ============================================================
    نموذج حركة جديدة
    ============================================================ */
-function MovementFormModal({ topics, presetTopicId, onClose, onSave }) {
+function MovementFormModal({
+  topics,
+  presetTopicId,
+  onClose,
+  onSave
+}) {
   const [topicId, setTopicId] = useState(presetTopicId || (topics[0] ? topics[0].id : ""));
   const [direction, setDirection] = useState("وارد");
   const [type, setType] = useState(MOVEMENT_TYPES[0]);
@@ -686,383 +1429,672 @@ function MovementFormModal({ topics, presetTopicId, onClose, onSave }) {
   const [status, setStatus] = useState("قيد الإجراء");
   const [notes, setNotes] = useState("");
   const [error, setError] = useState("");
-
   function handleSave() {
-    if (!topicId) { setError("يرجى اختيار الموضوع المرتبط بالحركة."); return; }
-    if (!date) { setError("يرجى تحديد التاريخ."); return; }
-    onSave({ topicId, direction, type, entity, referenceNumber: referenceNumber.trim(), date, responsibleRole, status, notes: notes.trim() });
+    if (!topicId) {
+      setError("يرجى اختيار الموضوع المرتبط بالحركة.");
+      return;
+    }
+    if (!date) {
+      setError("يرجى تحديد التاريخ.");
+      return;
+    }
+    onSave({
+      topicId,
+      direction,
+      type,
+      entity,
+      referenceNumber: referenceNumber.trim(),
+      date,
+      responsibleRole,
+      status,
+      notes: notes.trim()
+    });
   }
-
-  return (
-    <Modal title="حركة جديدة" onClose={onClose}>
-      {!presetTopicId && (
-        <Field label="الموضوع">
-          <select className={inputClass} style={inputStyle} value={topicId} onChange={(e) => setTopicId(e.target.value)}>
-            {topics.map((t) => <option key={t.id} value={t.id}>{t.title}</option>)}
-          </select>
-        </Field>
-      )}
-      <Field label="الاتجاه">
-        <div className="flex gap-2">
-          {["وارد", "صادر"].map((d) => (
-            <button key={d} type="button" onClick={() => setDirection(d)} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-bold border" style={{ background: direction === d ? C.navy950 : "#fff", color: direction === d ? "#fff" : C.navy800, borderColor: direction === d ? C.navy950 : "#D8D2C0" }}>
-              {d === "وارد" ? <Inbox size={14} /> : <Send size={14} />} {d}
-            </button>
-          ))}
-        </div>
-      </Field>
-      <div className="grid grid-cols-2 gap-3">
-        <Field label="نوع الحركة">
-          <select className={inputClass} style={inputStyle} value={type} onChange={(e) => setType(e.target.value)}>
-            {MOVEMENT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-          </select>
-        </Field>
-        <Field label="التاريخ">
-          <input type="date" className={inputClass} style={inputStyle} value={date} onChange={(e) => setDate(e.target.value)} />
-        </Field>
-      </div>
-      <Field label="الجهة">
-        <select className={inputClass} style={inputStyle} value={entity} onChange={(e) => setEntity(e.target.value)}>
-          <option value="">— داخلي / بدون جهة خارجية —</option>
-          {ENTITIES.map((e) => <option key={e} value={e}>{e}</option>)}
-        </select>
-      </Field>
-      <div className="grid grid-cols-2 gap-3">
-        <Field label="رقم المرجع (اختياري)">
-          <input className={inputClass} style={inputStyle} value={referenceNumber} onChange={(e) => setReferenceNumber(e.target.value)} placeholder="مثال: 2026/0123" />
-        </Field>
-        <Field label="الحالة">
-          <select className={inputClass} style={inputStyle} value={status} onChange={(e) => setStatus(e.target.value)}>
-            {MOVEMENT_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-          </select>
-        </Field>
-      </div>
-      <Field label="الجهة/الفئة المسؤولة">
-        <select className={inputClass} style={inputStyle} value={responsibleRole} onChange={(e) => setResponsibleRole(e.target.value)}>
-          {ALL_ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
-        </select>
-      </Field>
-      <Field label="ملاحظات">
-        <textarea className={inputClass} style={inputStyle} rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="تفاصيل إضافية" />
-      </Field>
-      {error && <p className="text-xs text-red-600 mb-3">{error}</p>}
-      <div className="flex gap-2 justify-end mt-2">
-        <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm font-semibold" style={{ color: C.slate }}>إلغاء</button>
-        <button onClick={handleSave} className="px-4 py-2 rounded-lg text-sm font-bold text-white" style={{ background: C.navy950 }}>حفظ الحركة</button>
-      </div>
-    </Modal>
-  );
+  return /*#__PURE__*/React.createElement(Modal, {
+    title: "حركة جديدة",
+    onClose: onClose
+  }, !presetTopicId && /*#__PURE__*/React.createElement(Field, {
+    label: "الموضوع"
+  }, /*#__PURE__*/React.createElement("select", {
+    className: inputClass,
+    style: inputStyle,
+    value: topicId,
+    onChange: e => setTopicId(e.target.value)
+  }, topics.map(t => /*#__PURE__*/React.createElement("option", {
+    key: t.id,
+    value: t.id
+  }, t.title)))), /*#__PURE__*/React.createElement(Field, {
+    label: "الاتجاه"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex gap-2"
+  }, ["وارد", "صادر"].map(d => /*#__PURE__*/React.createElement("button", {
+    key: d,
+    type: "button",
+    onClick: () => setDirection(d),
+    className: "flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-bold border",
+    style: {
+      background: direction === d ? C.navy950 : "#fff",
+      color: direction === d ? "#fff" : C.navy800,
+      borderColor: direction === d ? C.navy950 : "#D8D2C0"
+    }
+  }, d === "وارد" ? /*#__PURE__*/React.createElement(Inbox, {
+    size: 14
+  }) : /*#__PURE__*/React.createElement(Send, {
+    size: 14
+  }), " ", d)))), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-2 gap-3"
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "نوع الحركة"
+  }, /*#__PURE__*/React.createElement("select", {
+    className: inputClass,
+    style: inputStyle,
+    value: type,
+    onChange: e => setType(e.target.value)
+  }, MOVEMENT_TYPES.map(t => /*#__PURE__*/React.createElement("option", {
+    key: t,
+    value: t
+  }, t)))), /*#__PURE__*/React.createElement(Field, {
+    label: "التاريخ"
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "date",
+    className: inputClass,
+    style: inputStyle,
+    value: date,
+    onChange: e => setDate(e.target.value)
+  }))), /*#__PURE__*/React.createElement(Field, {
+    label: "الجهة"
+  }, /*#__PURE__*/React.createElement("select", {
+    className: inputClass,
+    style: inputStyle,
+    value: entity,
+    onChange: e => setEntity(e.target.value)
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "— داخلي / بدون جهة خارجية —"), ENTITIES.map(e => /*#__PURE__*/React.createElement("option", {
+    key: e,
+    value: e
+  }, e)))), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-2 gap-3"
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "رقم المرجع (اختياري)"
+  }, /*#__PURE__*/React.createElement("input", {
+    className: inputClass,
+    style: inputStyle,
+    value: referenceNumber,
+    onChange: e => setReferenceNumber(e.target.value),
+    placeholder: "مثال: 2026/0123"
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "الحالة"
+  }, /*#__PURE__*/React.createElement("select", {
+    className: inputClass,
+    style: inputStyle,
+    value: status,
+    onChange: e => setStatus(e.target.value)
+  }, MOVEMENT_STATUSES.map(s => /*#__PURE__*/React.createElement("option", {
+    key: s,
+    value: s
+  }, s))))), /*#__PURE__*/React.createElement(Field, {
+    label: "الجهة/الفئة المسؤولة"
+  }, /*#__PURE__*/React.createElement("select", {
+    className: inputClass,
+    style: inputStyle,
+    value: responsibleRole,
+    onChange: e => setResponsibleRole(e.target.value)
+  }, ALL_ROLES.map(r => /*#__PURE__*/React.createElement("option", {
+    key: r,
+    value: r
+  }, r)))), /*#__PURE__*/React.createElement(Field, {
+    label: "ملاحظات"
+  }, /*#__PURE__*/React.createElement("textarea", {
+    className: inputClass,
+    style: inputStyle,
+    rows: 2,
+    value: notes,
+    onChange: e => setNotes(e.target.value),
+    placeholder: "تفاصيل إضافية"
+  })), error && /*#__PURE__*/React.createElement("p", {
+    className: "text-xs text-red-600 mb-3"
+  }, error), /*#__PURE__*/React.createElement("div", {
+    className: "flex gap-2 justify-end mt-2"
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: onClose,
+    className: "px-4 py-2 rounded-lg text-sm font-semibold",
+    style: {
+      color: C.slate
+    }
+  }, "إلغاء"), /*#__PURE__*/React.createElement("button", {
+    onClick: handleSave,
+    className: "px-4 py-2 rounded-lg text-sm font-bold text-white",
+    style: {
+      background: C.navy950
+    }
+  }, "حفظ الحركة")));
 }
 
 /* ============================================================
    سجل حركة المواضيع (عام)
    ============================================================ */
-const emptyFilters = { direction: "all", type: "all", entity: "all", committee: "all", search: "" };
-
-function MovementsView({ data, onAddMovement, onDeleteMovement }) {
+const emptyFilters = {
+  direction: "all",
+  type: "all",
+  entity: "all",
+  committee: "all",
+  search: ""
+};
+function MovementsView({
+  data,
+  onAddMovement,
+  onDeleteMovement
+}) {
   const [filters, setFilters] = useState(emptyFilters);
   const [formOpen, setFormOpen] = useState(false);
   const [confirmId, setConfirmId] = useState(null);
-  const topicsById = useMemo(() => Object.fromEntries(data.topics.map((t) => [t.id, t])), [data.topics]);
-
+  const topicsById = useMemo(() => Object.fromEntries(data.topics.map(t => [t.id, t])), [data.topics]);
   const filtered = useMemo(() => {
-    return [...data.movements]
-      .filter((m) => {
-        const topic = topicsById[m.topicId];
-        if (filters.direction !== "all" && m.direction !== filters.direction) return false;
-        if (filters.type !== "all" && m.type !== filters.type) return false;
-        if (filters.entity !== "all" && m.entity !== filters.entity) return false;
-        if (filters.committee !== "all" && (!topic || topic.committeeId !== filters.committee)) return false;
-        if (filters.search) {
-          const s = filters.search;
-          const hay = `${topic ? topic.title : ""} ${m.notes || ""} ${m.referenceNumber || ""}`;
-          if (!hay.includes(s)) return false;
-        }
-        return true;
-      })
-      .sort((a, b) => new Date(b.date) - new Date(a.date));
+    return [...data.movements].filter(m => {
+      const topic = topicsById[m.topicId];
+      if (filters.direction !== "all" && m.direction !== filters.direction) return false;
+      if (filters.type !== "all" && m.type !== filters.type) return false;
+      if (filters.entity !== "all" && m.entity !== filters.entity) return false;
+      if (filters.committee !== "all" && (!topic || topic.committeeId !== filters.committee)) return false;
+      if (filters.search) {
+        const s = filters.search;
+        const hay = `${topic ? topic.title : ""} ${m.notes || ""} ${m.referenceNumber || ""}`;
+        if (!hay.includes(s)) return false;
+      }
+      return true;
+    }).sort((a, b) => new Date(b.date) - new Date(a.date));
   }, [data.movements, filters, topicsById]);
-
-  return (
-    <div>
-      <PageHeader
-        title="سجل حركة المواضيع"
-        subtitle="الوارد والصادر لجميع المواضيع — قابل للفلترة والبحث"
-        action={
-          <button onClick={() => setFormOpen(true)} className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold text-white" style={{ background: C.navy950 }}>
-            <Plus size={16} /> حركة جديدة
-          </button>
-        }
-      />
-
-      <div className="bg-white rounded-xl p-3 mb-4 shadow-sm flex flex-wrap items-center gap-2">
-        <Filter size={14} style={{ color: C.slate }} />
-        <select className="rounded-lg border px-2.5 py-1.5 text-xs outline-none" style={inputStyle} value={filters.direction} onChange={(e) => setFilters({ ...filters, direction: e.target.value })}>
-          <option value="all">كل الاتجاهات</option>
-          <option value="وارد">وارد</option>
-          <option value="صادر">صادر</option>
-        </select>
-        <select className="rounded-lg border px-2.5 py-1.5 text-xs outline-none" style={inputStyle} value={filters.type} onChange={(e) => setFilters({ ...filters, type: e.target.value })}>
-          <option value="all">كل الأنواع</option>
-          {MOVEMENT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-        </select>
-        <select className="rounded-lg border px-2.5 py-1.5 text-xs outline-none" style={inputStyle} value={filters.committee} onChange={(e) => setFilters({ ...filters, committee: e.target.value })}>
-          <option value="all">كل اللجان</option>
-          {COMMITTEES.map((c) => <option key={c.id} value={c.id}>{c.short}</option>)}
-        </select>
-        <select className="rounded-lg border px-2.5 py-1.5 text-xs outline-none max-w-[160px]" style={inputStyle} value={filters.entity} onChange={(e) => setFilters({ ...filters, entity: e.target.value })}>
-          <option value="all">كل الجهات</option>
-          {ENTITIES.map((e) => <option key={e} value={e}>{e}</option>)}
-        </select>
-        <input value={filters.search} onChange={(e) => setFilters({ ...filters, search: e.target.value })} placeholder="بحث..." className="rounded-lg border px-2.5 py-1.5 text-xs outline-none w-32" style={inputStyle} />
-        <button onClick={() => setFilters(emptyFilters)} className="flex items-center gap-1 text-xs font-semibold mr-auto" style={{ color: C.slate }}>
-          <RotateCcw size={12} /> إعادة تعيين
-        </button>
-      </div>
-
-      {filtered.length === 0 ? (
-        <div className="text-center py-16 bg-white rounded-xl shadow-sm">
-          <p className="text-sm" style={{ color: C.slate }}>لا توجد حركات مطابقة لهذه الفلاتر.</p>
-        </div>
-      ) : (
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-          {filtered.map((m, i) => {
-            const topic = topicsById[m.topicId];
-            return (
-              <div key={m.id} className="flex items-center gap-3 px-4 py-3 flex-wrap" style={{ borderTop: i === 0 ? "none" : `1px solid #F0ECE0` }}>
-                <Badge tone={m.direction === "وارد" ? "navy" : "gold"}>
-                  {m.direction === "وارد" ? <Inbox size={11} /> : <Send size={11} />} {m.direction}
-                </Badge>
-                <div className="min-w-0 flex-1">
-                  <div className="text-sm font-semibold truncate" style={{ color: C.ink }}>{topic ? topic.title : "—"}</div>
-                  <div className="text-xs mt-0.5" style={{ color: C.slate }}>
-                    {m.type} · {m.entity || "داخلي"} · {fmtDate(m.date)} {m.referenceNumber && <> · <RefBox>{m.referenceNumber}</RefBox></>}
-                  </div>
-                </div>
-                <Badge tone={m.status === "منجز" ? "green" : "amber"}>{m.status}</Badge>
-                <span className="text-xs hidden lg:inline" style={{ color: C.slate }}>{m.responsibleRole}</span>
-                {confirmId === m.id ? (
-                  <ConfirmInline onConfirm={() => { onDeleteMovement(m.id); setConfirmId(null); }} onCancel={() => setConfirmId(null)} />
-                ) : (
-                  <button onClick={() => setConfirmId(m.id)} className="text-gray-400 hover:text-red-500 transition-colors" aria-label="حذف">
-                    <Trash2 size={14} />
-                  </button>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {formOpen && (
-        <MovementFormModal
-          topics={data.topics}
-          presetTopicId={null}
-          onClose={() => setFormOpen(false)}
-          onSave={(payload) => { onAddMovement(payload); setFormOpen(false); }}
-        />
-      )}
-    </div>
-  );
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(PageHeader, {
+    title: "سجل حركة المواضيع",
+    subtitle: "الوارد والصادر لجميع المواضيع — قابل للفلترة والبحث",
+    action: /*#__PURE__*/React.createElement("button", {
+      onClick: () => setFormOpen(true),
+      className: "flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold text-white",
+      style: {
+        background: C.navy950
+      }
+    }, /*#__PURE__*/React.createElement(Plus, {
+      size: 16
+    }), " حركة جديدة")
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "bg-white rounded-xl p-3 mb-4 shadow-sm flex flex-wrap items-center gap-2"
+  }, /*#__PURE__*/React.createElement(Filter, {
+    size: 14,
+    style: {
+      color: C.slate
+    }
+  }), /*#__PURE__*/React.createElement("select", {
+    className: "rounded-lg border px-2.5 py-1.5 text-xs outline-none",
+    style: inputStyle,
+    value: filters.direction,
+    onChange: e => setFilters({
+      ...filters,
+      direction: e.target.value
+    })
+  }, /*#__PURE__*/React.createElement("option", {
+    value: "all"
+  }, "كل الاتجاهات"), /*#__PURE__*/React.createElement("option", {
+    value: "وارد"
+  }, "وارد"), /*#__PURE__*/React.createElement("option", {
+    value: "صادر"
+  }, "صادر")), /*#__PURE__*/React.createElement("select", {
+    className: "rounded-lg border px-2.5 py-1.5 text-xs outline-none",
+    style: inputStyle,
+    value: filters.type,
+    onChange: e => setFilters({
+      ...filters,
+      type: e.target.value
+    })
+  }, /*#__PURE__*/React.createElement("option", {
+    value: "all"
+  }, "كل الأنواع"), MOVEMENT_TYPES.map(t => /*#__PURE__*/React.createElement("option", {
+    key: t,
+    value: t
+  }, t))), /*#__PURE__*/React.createElement("select", {
+    className: "rounded-lg border px-2.5 py-1.5 text-xs outline-none",
+    style: inputStyle,
+    value: filters.committee,
+    onChange: e => setFilters({
+      ...filters,
+      committee: e.target.value
+    })
+  }, /*#__PURE__*/React.createElement("option", {
+    value: "all"
+  }, "كل اللجان"), COMMITTEES.map(c => /*#__PURE__*/React.createElement("option", {
+    key: c.id,
+    value: c.id
+  }, c.short))), /*#__PURE__*/React.createElement("select", {
+    className: "rounded-lg border px-2.5 py-1.5 text-xs outline-none max-w-[160px]",
+    style: inputStyle,
+    value: filters.entity,
+    onChange: e => setFilters({
+      ...filters,
+      entity: e.target.value
+    })
+  }, /*#__PURE__*/React.createElement("option", {
+    value: "all"
+  }, "كل الجهات"), ENTITIES.map(e => /*#__PURE__*/React.createElement("option", {
+    key: e,
+    value: e
+  }, e))), /*#__PURE__*/React.createElement("input", {
+    value: filters.search,
+    onChange: e => setFilters({
+      ...filters,
+      search: e.target.value
+    }),
+    placeholder: "بحث...",
+    className: "rounded-lg border px-2.5 py-1.5 text-xs outline-none w-32",
+    style: inputStyle
+  }), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setFilters(emptyFilters),
+    className: "flex items-center gap-1 text-xs font-semibold mr-auto",
+    style: {
+      color: C.slate
+    }
+  }, /*#__PURE__*/React.createElement(RotateCcw, {
+    size: 12
+  }), " إعادة تعيين")), filtered.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    className: "text-center py-16 bg-white rounded-xl shadow-sm"
+  }, /*#__PURE__*/React.createElement("p", {
+    className: "text-sm",
+    style: {
+      color: C.slate
+    }
+  }, "لا توجد حركات مطابقة لهذه الفلاتر.")) : /*#__PURE__*/React.createElement("div", {
+    className: "bg-white rounded-xl shadow-sm overflow-hidden"
+  }, filtered.map((m, i) => {
+    const topic = topicsById[m.topicId];
+    return /*#__PURE__*/React.createElement("div", {
+      key: m.id,
+      className: "flex items-center gap-3 px-4 py-3 flex-wrap",
+      style: {
+        borderTop: i === 0 ? "none" : `1px solid #F0ECE0`
+      }
+    }, /*#__PURE__*/React.createElement(Badge, {
+      tone: m.direction === "وارد" ? "navy" : "gold"
+    }, m.direction === "وارد" ? /*#__PURE__*/React.createElement(Inbox, {
+      size: 11
+    }) : /*#__PURE__*/React.createElement(Send, {
+      size: 11
+    }), " ", m.direction), /*#__PURE__*/React.createElement("div", {
+      className: "min-w-0 flex-1"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "text-sm font-semibold truncate",
+      style: {
+        color: C.ink
+      }
+    }, topic ? topic.title : "—"), /*#__PURE__*/React.createElement("div", {
+      className: "text-xs mt-0.5",
+      style: {
+        color: C.slate
+      }
+    }, m.type, " · ", m.entity || "داخلي", " · ", fmtDate(m.date), " ", m.referenceNumber && /*#__PURE__*/React.createElement(React.Fragment, null, " · ", /*#__PURE__*/React.createElement(RefBox, null, m.referenceNumber)))), /*#__PURE__*/React.createElement(Badge, {
+      tone: m.status === "منجز" ? "green" : "amber"
+    }, m.status), /*#__PURE__*/React.createElement("span", {
+      className: "text-xs hidden lg:inline",
+      style: {
+        color: C.slate
+      }
+    }, m.responsibleRole), confirmId === m.id ? /*#__PURE__*/React.createElement(ConfirmInline, {
+      onConfirm: () => {
+        onDeleteMovement(m.id);
+        setConfirmId(null);
+      },
+      onCancel: () => setConfirmId(null)
+    }) : /*#__PURE__*/React.createElement("button", {
+      onClick: () => setConfirmId(m.id),
+      className: "text-gray-400 hover:text-red-500 transition-colors",
+      "aria-label": "حذف"
+    }, /*#__PURE__*/React.createElement(Trash2, {
+      size: 14
+    })));
+  })), formOpen && /*#__PURE__*/React.createElement(MovementFormModal, {
+    topics: data.topics,
+    presetTopicId: null,
+    onClose: () => setFormOpen(false),
+    onSave: payload => {
+      onAddMovement(payload);
+      setFormOpen(false);
+    }
+  }));
 }
 
 /* ============================================================
    الجهات
    ============================================================ */
-function EntitiesView({ data }) {
+function EntitiesView({
+  data
+}) {
   const counts = useMemo(() => {
     const map = {};
-    ENTITIES.forEach((e) => (map[e] = 0));
-    data.movements.forEach((m) => { if (m.entity && map[m.entity] !== undefined) map[m.entity] += 1; });
+    ENTITIES.forEach(e => map[e] = 0);
+    data.movements.forEach(m => {
+      if (m.entity && map[m.entity] !== undefined) map[m.entity] += 1;
+    });
     return map;
   }, [data.movements]);
-
-  return (
-    <div>
-      <PageHeader title="الجهات" subtitle="الجهات التي تتعامل معها الدائرة ضمن أعمال المجالس واللجان" />
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {ENTITIES.map((e) => (
-          <div key={e} className="bg-white rounded-xl p-4 shadow-sm border-t-2 flex items-center justify-between gap-3" style={{ borderColor: C.gold500 }}>
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="rounded-lg p-2 shrink-0" style={{ background: "#EEF2F7" }}>
-                <Building2 size={16} color={C.navy700} />
-              </div>
-              <span className="text-sm font-semibold truncate" style={{ color: C.ink }}>{e}</span>
-            </div>
-            <span className="text-xs font-bold shrink-0" style={{ color: C.slate }}>{counts[e]} حركة</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(PageHeader, {
+    title: "الجهات",
+    subtitle: "الجهات التي تتعامل معها الدائرة ضمن أعمال المجالس واللجان"
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"
+  }, ENTITIES.map(e => /*#__PURE__*/React.createElement("div", {
+    key: e,
+    className: "bg-white rounded-xl p-4 shadow-sm border-t-2 flex items-center justify-between gap-3",
+    style: {
+      borderColor: C.gold500
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-3 min-w-0"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "rounded-lg p-2 shrink-0",
+    style: {
+      background: "#EEF2F7"
+    }
+  }, /*#__PURE__*/React.createElement(Building2, {
+    size: 16,
+    color: C.navy700
+  })), /*#__PURE__*/React.createElement("span", {
+    className: "text-sm font-semibold truncate",
+    style: {
+      color: C.ink
+    }
+  }, e)), /*#__PURE__*/React.createElement("span", {
+    className: "text-xs font-bold shrink-0",
+    style: {
+      color: C.slate
+    }
+  }, counts[e], " حركة")))));
 }
 
 /* ============================================================
    اللجان والمجالس
    ============================================================ */
-function CommitteesView({ data }) {
-  return (
-    <div>
-      <PageHeader title="اللجان والمجالس" subtitle="التصنيفات الرئيسية للمواضيع التي تتابعها الدائرة" />
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {COMMITTEES.map((c) => {
-          const topics = data.topics.filter((t) => t.committeeId === c.id);
-          const active = topics.filter((t) => t.status === "نشط").length;
-          const pending = topics.filter((t) => t.status === "قيد الانتظار").length;
-          const closed = topics.filter((t) => t.status === "مغلق").length;
-          return (
-            <div key={c.id} className="bg-white rounded-xl p-5 shadow-sm border-t-2" style={{ borderColor: C.gold500 }}>
-              <div className="flex items-center gap-3 mb-3">
-                <div className="rounded-full p-2.5" style={{ background: C.navy950 }}>
-                  <Landmark size={18} color={C.gold500} />
-                </div>
-                <div>
-                  <h3 className="font-bold text-sm" style={{ color: C.navy950 }}>{c.name}</h3>
-                  <span className="text-xs" style={{ color: C.slate }}>{topics.length} موضوع</span>
-                </div>
-              </div>
-              <div className="flex gap-2 flex-wrap">
-                <Badge tone="green">{active} نشط</Badge>
-                <Badge tone="amber">{pending} قيد الانتظار</Badge>
-                <Badge tone="gray">{closed} مغلق</Badge>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
+function CommitteesView({
+  data
+}) {
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(PageHeader, {
+    title: "اللجان والمجالس",
+    subtitle: "التصنيفات الرئيسية للمواضيع التي تتابعها الدائرة"
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-1 sm:grid-cols-2 gap-4"
+  }, COMMITTEES.map(c => {
+    const topics = data.topics.filter(t => t.committeeId === c.id);
+    const active = topics.filter(t => t.status === "نشط").length;
+    const pending = topics.filter(t => t.status === "قيد الانتظار").length;
+    const closed = topics.filter(t => t.status === "مغلق").length;
+    return /*#__PURE__*/React.createElement("div", {
+      key: c.id,
+      className: "bg-white rounded-xl p-5 shadow-sm border-t-2",
+      style: {
+        borderColor: C.gold500
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "flex items-center gap-3 mb-3"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "rounded-full p-2.5",
+      style: {
+        background: C.navy950
+      }
+    }, /*#__PURE__*/React.createElement(Landmark, {
+      size: 18,
+      color: C.gold500
+    })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h3", {
+      className: "font-bold text-sm",
+      style: {
+        color: C.navy950
+      }
+    }, c.name), /*#__PURE__*/React.createElement("span", {
+      className: "text-xs",
+      style: {
+        color: C.slate
+      }
+    }, topics.length, " موضوع"))), /*#__PURE__*/React.createElement("div", {
+      className: "flex gap-2 flex-wrap"
+    }, /*#__PURE__*/React.createElement(Badge, {
+      tone: "green"
+    }, active, " نشط"), /*#__PURE__*/React.createElement(Badge, {
+      tone: "amber"
+    }, pending, " قيد الانتظار"), /*#__PURE__*/React.createElement(Badge, {
+      tone: "gray"
+    }, closed, " مغلق")));
+  })));
 }
 
 /* ============================================================
    الفئات الوظيفية
    ============================================================ */
 function TeamView() {
-  return (
-    <div>
-      <PageHeader title="الفئات الوظيفية" subtitle="هيكل موظفي الدائرة حسب أقسام العمل" />
-      <div className="space-y-5">
-        {ROLE_GROUPS.map((g) => (
-          <div key={g.group} className="bg-white rounded-xl p-4 shadow-sm">
-            <h3 className="font-bold text-sm mb-3 flex items-center gap-2" style={{ color: C.navy950 }}>
-              <span className="w-1.5 h-4 rounded-full" style={{ background: C.gold500 }} />
-              {g.group}
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-              {g.roles.map((r) => (
-                <div key={r} className="flex items-center gap-2.5 rounded-lg p-2.5" style={{ background: C.paper }}>
-                  <div className="rounded-full p-1.5 shrink-0" style={{ background: "#fff" }}>
-                    <Users size={13} color={C.navy700} />
-                  </div>
-                  <span className="text-xs font-semibold" style={{ color: C.ink }}>{r}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(PageHeader, {
+    title: "الفئات الوظيفية",
+    subtitle: "هيكل موظفي الدائرة حسب أقسام العمل"
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "space-y-5"
+  }, ROLE_GROUPS.map(g => /*#__PURE__*/React.createElement("div", {
+    key: g.group,
+    className: "bg-white rounded-xl p-4 shadow-sm"
+  }, /*#__PURE__*/React.createElement("h3", {
+    className: "font-bold text-sm mb-3 flex items-center gap-2",
+    style: {
+      color: C.navy950
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "w-1.5 h-4 rounded-full",
+    style: {
+      background: C.gold500
+    }
+  }), g.group), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5"
+  }, g.roles.map(r => /*#__PURE__*/React.createElement("div", {
+    key: r,
+    className: "flex items-center gap-2.5 rounded-lg p-2.5",
+    style: {
+      background: C.paper
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "rounded-full p-1.5 shrink-0",
+    style: {
+      background: "#fff"
+    }
+  }, /*#__PURE__*/React.createElement(Users, {
+    size: 13,
+    color: C.navy700
+  })), /*#__PURE__*/React.createElement("span", {
+    className: "text-xs font-semibold",
+    style: {
+      color: C.ink
+    }
+  }, r))))))));
 }
 
 /* ============================================================
    التطبيق الرئيسي
    ============================================================ */
-export default function App() {
+function App() {
   const [view, setView] = useState("dashboard");
-  const [data, setData] = useState({ topics: [], movements: [] });
+  const [data, setData] = useState({
+    topics: [],
+    movements: []
+  });
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [notice, setNotice] = useState(null);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      try {
-        const res = await window.storage.get(STORAGE_KEY, true);
-        if (!cancelled) {
-          if (res && res.value) {
-            setData(JSON.parse(res.value));
-          } else {
-            const seed = seedData();
-            setData(seed);
-            window.storage.set(STORAGE_KEY, JSON.stringify(seed), true).catch(() => {});
-          }
-        }
-      } catch (e) {
-        if (!cancelled) {
-          const seed = seedData();
-          setData(seed);
-          window.storage.set(STORAGE_KEY, JSON.stringify(seed), true).catch(() => {});
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
+  function flash(type, message) {
+    setNotice({
+      type: type,
+      message: message
+    });
+    setTimeout(() => setNotice(null), 4000);
+  }
+  async function refresh() {
+    try {
+      const fresh = await fetchAllData();
+      setData(fresh);
+      setLoadError(false);
+    } catch (e) {
+      console.error(e);
+      setLoadError(true);
+    } finally {
+      setLoading(false);
     }
-    load();
-    return () => { cancelled = true; };
+  }
+  useEffect(() => {
+    refresh();
+    const interval = setInterval(refresh, 20000);
+    function onFocus() {
+      refresh();
+    }
+    window.addEventListener("focus", onFocus);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("focus", onFocus);
+    };
   }, []);
-
-  async function persist(next) {
-    setData(next);
-    try { await window.storage.set(STORAGE_KEY, JSON.stringify(next), true); } catch (e) { console.error("storage error", e); }
+  async function addTopic(payload) {
+    try {
+      const t = await insertTopic(payload);
+      setData(d => ({
+        ...d,
+        topics: [t, ...d.topics]
+      }));
+    } catch (e) {
+      console.error(e);
+      flash("error", "تعذّرت إضافة الموضوع — تحقق من الاتصال.");
+    }
   }
-
-  function addTopic(payload) {
-    const t = { id: uid(), createdAt: new Date().toISOString(), ...payload };
-    persist({ ...data, topics: [t, ...data.topics] });
+  async function updateTopic(id, patch) {
+    try {
+      const t = await patchTopicRow(id, patch);
+      setData(d => ({
+        ...d,
+        topics: d.topics.map(x => x.id === id ? t : x)
+      }));
+    } catch (e) {
+      console.error(e);
+      flash("error", "تعذّر حفظ التعديل.");
+    }
   }
-  function updateTopic(id, patch) {
-    persist({ ...data, topics: data.topics.map((t) => (t.id === id ? { ...t, ...patch } : t)) });
+  async function addMovement(payload) {
+    try {
+      const m = await insertMovement(payload);
+      setData(d => ({
+        ...d,
+        movements: [m, ...d.movements]
+      }));
+    } catch (e) {
+      console.error(e);
+      flash("error", "تعذّرت إضافة الحركة.");
+    }
   }
-  function addMovement(payload) {
-    const m = { id: uid(), createdAt: new Date().toISOString(), ...payload };
-    persist({ ...data, movements: [m, ...data.movements] });
+  async function deleteMovement(id) {
+    try {
+      await deleteMovementRow(id);
+      setData(d => ({
+        ...d,
+        movements: d.movements.filter(m => m.id !== id)
+      }));
+    } catch (e) {
+      console.error(e);
+      flash("error", "تعذّر حذف الحركة.");
+    }
   }
-  function deleteMovement(id) {
-    persist({ ...data, movements: data.movements.filter((m) => m.id !== id) });
-  }
-  function resetData() {
-    persist(seedData());
-  }
-
   if (loading) {
-    return (
-      <div dir="rtl" className="min-h-screen flex items-center justify-center" style={{ background: C.paper, fontFamily: "'Cairo', sans-serif" }}>
-        <style>{`@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap');`}</style>
-        <div className="flex items-center gap-3">
-          <Seal size={36} />
-          <span className="text-sm font-semibold" style={{ color: C.navy800 }}>جارِ التحميل...</span>
-        </div>
-      </div>
-    );
+    return /*#__PURE__*/React.createElement("div", {
+      dir: "rtl",
+      className: "min-h-screen flex items-center justify-center",
+      style: {
+        background: C.paper,
+        fontFamily: "'Cairo', sans-serif"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "flex items-center gap-3"
+    }, /*#__PURE__*/React.createElement(Seal, {
+      size: 36
+    }), /*#__PURE__*/React.createElement("span", {
+      className: "text-sm font-semibold",
+      style: {
+        color: C.navy800
+      }
+    }, "جارِ الاتصال بقاعدة البيانات...")));
   }
-
-  return (
-    <div dir="rtl" className="min-h-screen flex" style={{ background: C.paper, fontFamily: "'Cairo', sans-serif", color: C.ink }}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap');
+  if (loadError) {
+    return /*#__PURE__*/React.createElement("div", {
+      dir: "rtl",
+      className: "min-h-screen flex items-center justify-center p-6",
+      style: {
+        background: C.paper,
+        fontFamily: "'Cairo', sans-serif"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "text-center max-w-sm"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "flex justify-center mb-4"
+    }, /*#__PURE__*/React.createElement(Seal, {
+      size: 40
+    })), /*#__PURE__*/React.createElement("p", {
+      className: "font-bold text-sm",
+      style: {
+        color: C.navy950
+      }
+    }, "تعذّر الاتصال بقاعدة البيانات المشتركة"), /*#__PURE__*/React.createElement("p", {
+      className: "mt-1.5 text-xs",
+      style: {
+        color: C.slate
+      }
+    }, "تحقق من اتصالك بالإنترنت ثم أعد المحاولة."), /*#__PURE__*/React.createElement("button", {
+      onClick: refresh,
+      className: "mt-4 px-4 py-2 rounded-lg text-sm font-bold text-white",
+      style: {
+        background: C.navy950
+      }
+    }, "إعادة المحاولة")));
+  }
+  return /*#__PURE__*/React.createElement("div", {
+    dir: "rtl",
+    className: "min-h-screen flex",
+    style: {
+      background: C.paper,
+      fontFamily: "'Cairo', sans-serif",
+      color: C.ink
+    }
+  }, /*#__PURE__*/React.createElement("style", null, `
         * { font-family: 'Cairo', sans-serif; }
         .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-      `}</style>
-
-      <Sidebar view={view} setView={setView} onReset={resetData} mobileOpen={mobileNavOpen} setMobileOpen={setMobileNavOpen} />
-
-      <main className="flex-1 min-w-0 p-4 md:p-8">
-        {view === "dashboard" && <DashboardView data={data} />}
-        {view === "topics" && (
-          <TopicsView
-            data={data}
-            onAddTopic={addTopic}
-            onUpdateTopic={updateTopic}
-            onAddMovement={addMovement}
-            onDeleteMovement={deleteMovement}
-          />
-        )}
-        {view === "movements" && <MovementsView data={data} onAddMovement={addMovement} onDeleteMovement={deleteMovement} />}
-        {view === "entities" && <EntitiesView data={data} />}
-        {view === "committees" && <CommitteesView data={data} />}
-        {view === "team" && <TeamView />}
-      </main>
-    </div>
-  );
+      `), /*#__PURE__*/React.createElement(Sidebar, {
+    view: view,
+    setView: setView,
+    onReset: refresh,
+    mobileOpen: mobileNavOpen,
+    setMobileOpen: setMobileNavOpen
+  }), /*#__PURE__*/React.createElement("main", {
+    className: "flex-1 min-w-0 p-4 md:p-8"
+  }, notice && /*#__PURE__*/React.createElement("div", {
+    className: "mb-4 rounded-lg px-4 py-2.5 text-sm font-semibold",
+    style: {
+      background: notice.type === "error" ? "#FBEEDC" : "#E4F3E9",
+      color: notice.type === "error" ? "#A9682B" : "#1F7A46"
+    }
+  }, notice.message), view === "dashboard" && /*#__PURE__*/React.createElement(DashboardView, {
+    data: data
+  }), view === "topics" && /*#__PURE__*/React.createElement(TopicsView, {
+    data: data,
+    onAddTopic: addTopic,
+    onUpdateTopic: updateTopic,
+    onAddMovement: addMovement,
+    onDeleteMovement: deleteMovement
+  }), view === "movements" && /*#__PURE__*/React.createElement(MovementsView, {
+    data: data,
+    onAddMovement: addMovement,
+    onDeleteMovement: deleteMovement
+  }), view === "entities" && /*#__PURE__*/React.createElement(EntitiesView, {
+    data: data
+  }), view === "committees" && /*#__PURE__*/React.createElement(CommitteesView, {
+    data: data
+  }), view === "team" && /*#__PURE__*/React.createElement(TeamView, null)));
 }
+ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
+</script>
+</body>
+</html>
