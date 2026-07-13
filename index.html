@@ -711,7 +711,7 @@ async function rpcResetPassword(employeeNumber) {
    ============================================================ */
 const ATTACHMENTS_BUCKET = "topic-attachments";
 const ALLOWED_ATTACHMENT_EXT = [".pdf", ".doc", ".docx", ".xls", ".xlsx"];
-const MAX_ATTACHMENT_SIZE = 15 * 1024 * 1024;
+const MAX_ATTACHMENT_SIZE = 50 * 1024 * 1024;
 function humanFileSize(bytes) {
   if (!bytes) return "٠ KB";
   const kb = bytes / 1024;
@@ -1575,7 +1575,7 @@ function TopicFormModal({
         continue;
       }
       if (file.size > MAX_ATTACHMENT_SIZE) {
-        setAttachError("حجم كبير جدًا: " + file.name + " (الحد الأقصى 15 ميجابايت)");
+        setAttachError("حجم كبير جدًا: " + file.name + " (الحد الأقصى 50 ميجابايت)");
         continue;
       }
       setUploadingCount(c => c + 1);
